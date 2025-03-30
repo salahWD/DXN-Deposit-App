@@ -1,30 +1,34 @@
 import { Tabs } from 'expo-router';
-import React from 'react';
-import { Platform } from 'react-native';
+import React, { useEffect } from 'react';
+import { I18nManager } from 'react-native';
 
 import { HapticTab } from '@/components/HapticTab';
 import { IconSymbol } from '@/components/ui/IconSymbol';
 import TabBarBackground from '@/components/ui/TabBarBackground';
 import { Colors } from '@/constants/Colors';
-import { useColorScheme } from '@/hooks/useColorScheme';
+
+// Force RTL layout
+I18nManager.allowRTL(true);
+I18nManager.forceRTL(true);
 
 export default function TabLayout() {
-  const colorScheme = useColorScheme();
+  // Optional: Restart the app if needed (not always required)
+  useEffect(() => {
+    if (I18nManager.isRTL !== true) {
+      // You may need to restart the app for the change to take effect fully
+      // Updates.reloadAsync() from 'expo-updates' can be used if necessary
+    }
+  }, []);
 
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: Colors[colorScheme ?? 'light'].tint,
+        tabBarActiveTintColor: Colors.tint,
         headerShown: false,
         tabBarButton: HapticTab,
         tabBarBackground: TabBarBackground,
-        tabBarStyle: Platform.select({
-          ios: {
-            // Use a transparent background on iOS to show the blur effect
-            position: 'absolute',
-          },
-          default: {},
-        }),
+        // Ensure tab bar respects RTL
+        tabBarStyle: { direction: 'rtl' },
       }}>
       <Tabs.Screen
         name="index"
