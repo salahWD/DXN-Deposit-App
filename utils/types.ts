@@ -4,7 +4,9 @@ export type Order = {
 };
 
 export type Product = {
-  tag: number,
+  tag?: number,
+  depositCount?: number;
+  special?: number,
   price: number,
   id: number,
   title: {

@@ -1,7 +1,7 @@
 import { useFonts } from 'expo-font';
 import { getUserSession } from "@/utils/functions";
 
-import { KeyboardAvoidingView, ScrollView, StyleSheet, View, Text, TextInput, Button, Pressable, } from 'react-native';
+import { StyleSheet } from 'react-native';
 
 import { db } from '@/firebaseConfig';
 import { doc, setDoc, getDoc } from "firebase/firestore";
@@ -10,6 +10,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import { router } from 'expo-router';
 import CryptoJS from 'crypto-js';
+import LoginPage from '@/components/LoginPage';
 
 
 console.log("index - page")
@@ -17,7 +18,6 @@ console.log("index - page")
 
 export default function IndexScreen() {
   
-  const [isRegister, setIsRegister] = useState(false);
   const [memberCode, setMemberCode] = useState("");
   const [password, setPassword] = useState("");
   
@@ -103,50 +103,11 @@ export default function IndexScreen() {
   }
 
   return (
-    <ScrollView contentContainerStyle={{ alignItems: "center", justifyContent: "center", paddingVertical: 35, minHeight: "100%" }}>
-      <KeyboardAvoidingView style={{ alignItems: "center", justifyContent: "center", width: "100%", flex: 1 }}>
-        <Text style={{ fontSize: 35 }}>{isRegister ?  'إنشاء حساب': 'تسجيل الدخول' }</Text>
-        <View style={styles.form}>
-          <View style={styles.formRow}>
-            <Text style={styles.label}>رقم العضوية</Text>
-            <TextInput
-              keyboardType='numeric'
-              style={styles.input}
-              onChangeText={setMemberCode}
-              value={memberCode}
-              placeholder="رقم عضوية دي اكس ان"
-            />
-          </View>
-          <View style={styles.formRow}>
-            <Text style={styles.label}>كلمة المرور</Text>
-            <TextInput
-              style={styles.input}
-              onChangeText={setPassword}
-              value={password}
-              placeholder="كلمة المرور"
-            />
-          </View>
-          <View style={{ marginBottom: 8, }}>
-            <Button title={isRegister ?  'إنشاء حساب': 'تسجيل الدخول' } onPress={() => {
-              if (isRegister) {
-                registerUser()
-              }else {
-                loginUser()
-              }
-            }} />
-          </View>
-          <View style={{ marginBottom: 8, }}>
-            <Pressable onPress={() => {
-              setIsRegister(!isRegister)
-            }}>
-              <Text style={{ textAlign: "center",  }}>
-                {!isRegister ?  'إنشاء حساب': 'تسجيل الدخول' }
-              </Text>
-            </Pressable>
-          </View>
-        </View>
-      </KeyboardAvoidingView>
-    </ScrollView>
+    <LoginPage
+      login={loginUser}
+      register={registerUser}
+      updateMemberCode={setMemberCode}
+      updatePassword={setPassword} />
   );
 }
 

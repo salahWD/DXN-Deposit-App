@@ -1,6 +1,7 @@
 import { StyleSheet, View, ScrollView, TouchableOpacity, Pressable, Text } from 'react-native';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
+import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import ProductListing from '@/components/ProductListing';
 import { router } from 'expo-router';
 
@@ -19,12 +20,21 @@ export default function OrderScreen() {
             
             <ThemedView style={styles.titleContainer}>
               <Pressable onPress={handleGoBack}>
-                <Text style={{ color: "black" }}>Go Back</Text>
+                <Icon name='chevron-left' style={{ fontSize: 25,  backgroundColor: "#E9ECEF", borderRadius: 8, padding: 8}} />
               </Pressable>
               <ThemedText type="title" style={{flex: 1, textAlign: "right"}}>إنشاء طلب جديد</ThemedText>
             </ThemedView>
 
             <ProductListing/>
+
+            <View>
+              <Pressable onPress={() => console.log(1)}>
+                <View style={{ width: "100%", gap: 8, padding: 12, borderRadius: 8, backgroundColor: "#4FFFB0", display: "flex", flexDirection: "row", alignItems: "center", justifyContent: "center" }}>
+                  <Icon name='cart-outline' style={{ fontSize: 25,}} />
+                  <Text style={{ fontSize: 18, fontWeight: "bold" }}>إتمام الطلب</Text>
+                </View>
+              </Pressable>
+            </View>
 
           </ThemedView>
         </ThemedView>

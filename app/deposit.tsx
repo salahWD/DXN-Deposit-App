@@ -22,7 +22,7 @@ export default function DepositScreen() {
           // router.replace('/(tabs)');
         } else {
           console.log('User should login');
-          router.replace('/login');
+          router.replace('/');
         }
       }
 

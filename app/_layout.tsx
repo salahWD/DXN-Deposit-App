@@ -1,6 +1,10 @@
 import { useFonts } from 'expo-font';
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
+import React from 'react';
+import { Slot } from 'expo-router'; // Slot renders the current route
+import { ProductProvider } from '@/contexts/ProductContext';
+
 import { StatusBar } from 'expo-status-bar';
 import { I18nManager } from 'react-native';
 import { useEffect } from 'react';
@@ -32,7 +36,7 @@ export default function RootLayout() {
   }
 
   return (
-    <>
+    <ProductProvider>
       <Stack>
         {/* <Stack.Screen name="(tabs)" options={{ headerShown: false }} /> */}
         <Stack.Screen name="index" options={{ headerShown: false }} />
@@ -42,6 +46,6 @@ export default function RootLayout() {
         <Stack.Screen name="+not-found" />
       </Stack>
       <StatusBar style="auto" />
-    </>
+    </ProductProvider>
   );
 }
