@@ -33,8 +33,22 @@ export default function IndexScreen() {
         const Id = await getUserSession();
         console.log(Id);
         if (Id) {
-          console.log('User is logged in:', Id);
-          router.replace('/home');
+          
+          const userDocRef = doc(db, 'deposits', Id);
+          const userDoc = await getDoc(userDocRef);
+
+          if (userDoc.exists()) {
+            const userData = userDoc.data();
+
+            if (userData?.isAdmin == true) {
+              saveUserSession(Id, true);// true => is admin = yes
+              router.replace('/admin');
+            } else {
+              router.replace('/home');
+            }
+          } else {
+            console.error('No user found with this email');
+          }
         } else {
           console.log('User should login');
         }
@@ -98,8 +112,9 @@ export default function IndexScreen() {
     }
   }
 
-  async function saveUserSession(id: string) {
+  async function saveUserSession(id: string, isAdmin: boolean = false) {
     await AsyncStorage.setItem('member_code', id);
+    await AsyncStorage.setItem('isAdmin', JSON.stringify(isAdmin));
   }
 
   return (

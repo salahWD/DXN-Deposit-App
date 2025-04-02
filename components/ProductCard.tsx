@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { memo, useState, useEffect, useRef } from 'react';
 import { Text ,View, StyleSheet } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import SelectDropdown from 'react-native-select-dropdown'
@@ -9,22 +9,33 @@ import { Product } from "@/utils/types"
 
 const productCountList = Array.from(Array(51).keys());
 
-interface ProductCardProps extends Pick<Product, "price" | "id" |  "special" | "depositCount" > {
+interface ProductCardProps extends Pick<Product, "price"> {
   selectedCount?: number;
-  title: string;
+  depositCount?: number;
+  product: Product;
+  handleChangedCount: (product: Product, count: number) => void;
 }
 
-const ProductCard = ({ id, title, depositCount=0, selectedCount=0, special=0, price=0 }: ProductCardProps) => {
+const ProductCard = ({ handleChangedCount, selectedCount=0, depositCount=0, price=0, product }: ProductCardProps) => {
+  
+  const {title: {ar: title }, special=0} = product;
+  const [count, setCount] = useState(selectedCount);
+  const isFirstRender = useRef(true);
 
-  const [count, setCount] = useState(0);
- 
+  // Reset count when selectedCount changes (e.g., after submission)
   useEffect(() => {
-    setCount(selectedCount)
+    setCount(selectedCount);
   }, [selectedCount]);
 
-  const handleChangedText = (value: ProductCardProps["selectedCount"]) => {
-    setCount(value || 0);
-  }
+  useEffect(() => {
+    if (isFirstRender.current) {
+      isFirstRender.current = false; // Mark the first render as done
+      return; // Skip the first execution
+    }
+    
+    console.log("productCard - handleChangedCount - product count changed")
+    handleChangedCount(product, count)
+  }, [count]);
 
   return (
     <View style={{...styles.card, backgroundColor: (special >= 1) ? "#E6E6FA" : "white"}}>
@@ -39,15 +50,11 @@ const ProductCard = ({ id, title, depositCount=0, selectedCount=0, special=0, pr
         <View style={styles.block}>
           <ThemedText type="default" style={{ fontSize: 10, lineHeight: 12 }}>المطلوب</ThemedText>
         </View>
-        {/* <ThemedText type="default">4</ThemedText> */}
         <SelectDropdown
           statusBarTranslucent={true}
-          defaultValue={selectedCount}
-          // disabled={disabled || stopped}
+          defaultValue={count}
           data={productCountList}
-          onSelect={(selectedItem, index) => {
-            handleChangedText(selectedItem)
-          }}
+          onSelect={setCount}
           renderButton={(selectedItem, isOpened) => {
             return (
               <View style={styles.dropdownButtonStyle}>
@@ -167,4 +174,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default ProductCard;
+export default memo(ProductCard);
