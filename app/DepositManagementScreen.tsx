@@ -8,6 +8,7 @@ import {
   TouchableOpacity,
   ScrollView,
   Pressable,
+  SafeAreaView,
 } from "react-native";
 import {
   fetchDeposits,
@@ -91,49 +92,69 @@ const DepositManagementScreen = () => {
       const balance = calculateBalance(item?.transactions);
       const isExpanded = expandedUserId === item.userId;
       return (
-        <View style={styles.depositItem}>
+        <SafeAreaView style={styles.depositItem}>
           <TouchableOpacity
             onPress={() => setExpandedUserId(isExpanded ? null : item.userId)}
           >
-            <Text style={styles.userId}>User: {item.userId}</Text>
-            <Text>
-              Balance: {balance} (from {item.transactions.length} transactions)
+            <Text style={styles.userId}>العضوية: {item.userId}</Text>
+            <Text style={{ textAlign: "right" }}>
+              الرصيد: {balance} (إجمالي {item.transactions.length} عملية)
             </Text>
-            <Text>Products: {item.products.length}</Text>
+            <Text style={{ textAlign: "right" }}>
+              المنتجات: {item.products.length}
+            </Text>
           </TouchableOpacity>
 
           {isExpanded && (
             <View style={styles.expandedContent}>
               {/* Product List */}
-              <Text style={styles.sectionTitle}>Products</Text>
+              <Text style={styles.sectionTitle}>المنتجات</Text>
               {item.products.map((product, index) => (
                 <View key={index} style={styles.productRow}>
-                  <Text>
+                  <Text style={styles.productTitle}>
                     {product.title} (x{product.count})
                   </Text>
-                  <Button
-                    title="+"
-                    onPress={() =>
-                      editProduct(item.userId, product, product.count + 1)
-                    }
-                  />
-                  <Button
-                    title="-"
-                    onPress={() =>
-                      editProduct(item.userId, product, product.count - 1)
-                    }
-                  />
-                  <Button
-                    title="Remove"
-                    onPress={() => removeProduct(item.userId, product.id)}
-                  />
+                  <View style={styles.buttonsContainer}>
+                    <View style={styles.controlsBtns}>
+                      <TouchableOpacity
+                        onPress={() =>
+                          editProduct(item.userId, product, product.count + 1)
+                        }
+                      >
+                        <View style={styles.button}>
+                          <Text>+</Text>
+                        </View>
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        onPress={() =>
+                          editProduct(item.userId, product, product.count - 1)
+                        }
+                      >
+                        <View style={styles.button}>
+                          <Text>-</Text>
+                        </View>
+                      </TouchableOpacity>
+                    </View>
+                    <View style={styles.deleteProductBtn}>
+                      <Pressable
+                        onPress={() => removeProduct(item.userId, product.id)}
+                      >
+                        <Icon
+                          name="trash-can-outline"
+                          style={{
+                            fontSize: 18,
+                          }}
+                        />
+                      </Pressable>
+                    </View>
+                  </View>
                 </View>
               ))}
 
               {/* Add Product */}
               <TextInput
                 style={styles.input}
-                placeholder="Product Title"
+                placeholder="عنوان المنتج"
                 value={newProduct.title}
                 onChangeText={(text) =>
                   setNewProduct({ ...newProduct, title: text })
@@ -149,32 +170,32 @@ const DepositManagementScreen = () => {
                 }
               />
               <Button
-                title="Add Product"
+                title="إضافة منتج"
                 onPress={() => addProduct(item.userId)}
               />
 
               {/* Transactions */}
-              <Text style={styles.sectionTitle}>Add Transaction</Text>
+              <Text style={styles.sectionTitle}>إضافة عملية مالية</Text>
               <TextInput
                 style={styles.input}
-                placeholder="Amount (e.g., 50 or -50)"
+                placeholder="المبلغ"
                 value={transactionAmount}
                 keyboardType="numeric"
                 onChangeText={setTransactionAmount}
               />
               <TextInput
                 style={styles.input}
-                placeholder="Note (optional)"
+                placeholder="ملاحظات (اختياري)"
                 value={transactionNote}
                 onChangeText={setTransactionNote}
               />
               <Button
-                title="Add Transaction"
+                title="إضافة العملية"
                 onPress={() => addTransaction(item.userId)}
               />
             </View>
           )}
-        </View>
+        </SafeAreaView>
       );
     } else {
       return <Text>No transactions</Text>;
@@ -228,15 +249,53 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     marginBottom: 20,
   },
-  depositItem: { padding: 12, borderBottomWidth: 1, borderBottomColor: "#ccc" },
-  userId: { fontSize: 18, fontWeight: "bold" },
-  expandedContent: { paddingTop: 8 },
-  sectionTitle: { fontSize: 16, fontWeight: "bold", marginTop: 8 },
-  productRow: {
+  buttonsContainer: {
+    flexDirection: "row-reverse",
+    gap: 4,
+  },
+  controlsBtns: {
     flexDirection: "row",
+    gap: 1,
+    borderRadius: 4,
+    overflow: "hidden",
+    backgroundColor: "#333",
+  },
+  deleteProductBtn: {
+    borderRadius: 4,
+    backgroundColor: "#ff6e6e",
+    paddingVertical: 4,
+    paddingHorizontal: 6,
+  },
+  button: {
+    // red color => "#ff6e6e"
+    // green color => "#32de84"
+    backgroundColor: "#E9ECEF",
+    paddingVertical: 4,
+    paddingHorizontal: 10,
+  },
+  depositItem: { padding: 12, borderBottomWidth: 1, borderBottomColor: "#ccc" },
+  userId: {
+    fontSize: 18,
+    fontWeight: "bold",
+    textAlign: "right",
+  },
+  expandedContent: {
+    paddingTop: 8,
+  },
+  sectionTitle: {
+    fontSize: 16,
+    fontWeight: "bold",
+    marginTop: 8,
+    textAlign: "right",
+  },
+  productRow: {
+    gap: 6,
+    alignItems: "center",
+    flexDirection: "row-reverse",
     justifyContent: "space-between",
     marginVertical: 4,
   },
+  productTitle: { flex: 1, textAlign: "right" },
   input: { borderWidth: 1, borderColor: "#ccc", padding: 8, marginVertical: 4 },
 });
 

@@ -24,40 +24,41 @@ const ProtectedAdminPage = () => {
   }
 
   return (
-    <ScrollView>
-      <ThemedView style={styles.squaresContainer}>
-        <ThemedView style={styles.container}>
-          <ThemedView style={styles.content}>
-            <ThemedView style={styles.titleContainer}>
-              <Pressable onPress={handleGoBack}>
-                <Icon
-                  name="chevron-left"
-                  style={{
-                    fontSize: 25,
-                    backgroundColor: "#E9ECEF",
-                    borderRadius: 8,
-                    padding: 8,
-                  }}
-                />
-              </Pressable>
-              <ThemedText type="title" style={{ flex: 1, textAlign: "right" }}>
-                مراجعة الطلبات
-              </ThemedText>
-            </ThemedView>
-            <AdminPage />
+    <ThemedView style={styles.squaresContainer}>
+      <ThemedView style={styles.container}>
+        <ThemedView style={styles.content}>
+          <ThemedView style={styles.titleContainer}>
+            <Pressable onPress={handleGoBack}>
+              <Icon
+                name="chevron-left"
+                style={{
+                  fontSize: 25,
+                  backgroundColor: "#E9ECEF",
+                  borderRadius: 8,
+                  padding: 8,
+                }}
+              />
+            </Pressable>
+            <ThemedText type="title" style={{ flex: 1, textAlign: "right" }}>
+              مراجعة الطلبات
+            </ThemedText>
           </ThemedView>
+          <AdminPage />
         </ThemedView>
       </ThemedView>
-    </ScrollView>
+    </ThemedView>
   );
 };
 
 export default ProtectedAdminPage;
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
+  squaresContainer: {
+    flexWrap: "wrap",
+    justifyContent: "space-between",
+    gap: 16,
   },
+  container: { height: "100%", width: "100%" },
   content: {
     flex: 1,
     padding: 32,
@@ -70,11 +71,5 @@ const styles = StyleSheet.create({
     gap: 8,
     justifyContent: "space-between",
     marginBottom: 20,
-  },
-  squaresContainer: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    justifyContent: "space-between",
-    gap: 16,
   },
 });

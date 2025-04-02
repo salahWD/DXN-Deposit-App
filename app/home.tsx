@@ -72,55 +72,53 @@ export default function HomeScreen() {
       router.replace("/order");
     } else if (route == 1) {
       router.replace("/deposit");
-    } else if (route == 2) {
+      // } else if (route == 2) {
       // router.replace('/login');
-    } else {
+      // } else {
       // router.replace('/login');
     }
   };
 
   return (
-    <ScrollView>
-      <ThemedView style={styles.squaresContainer}>
-        <ThemedView style={styles.container}>
-          <ThemedView style={styles.content}>
-            <ThemedView style={styles.titleContainer}>
-              <ThemedText type="title">أهلا وسهلا</ThemedText>
-            </ThemedView>
-
-            <View
-              style={{
-                display: "flex",
-                flexDirection: "row",
-                flexWrap: "wrap",
-                gap: 15,
-              }}
-            >
-              {squareData.map((item, index) => (
-                <View
-                  key={index}
-                  style={[styles.square, { backgroundColor: item.color }]}
-                >
-                  <Pressable onPress={() => handleSquarePress(index)}>
-                    <View style={{ alignItems: "center" }}>
-                      <ThemedText style={styles.squareText}>
-                        {item.title}
-                      </ThemedText>
-                      <ThemedText
-                        type="subtitle"
-                        style={{ color: "white", opacity: 0.75, marginTop: 10 }}
-                      >
-                        {item.value}
-                      </ThemedText>
-                    </View>
-                  </Pressable>
-                </View>
-              ))}
-            </View>
-          </ThemedView>
+    <ThemedView style={styles.container}>
+      <ThemedView style={styles.content}>
+        <ThemedView style={styles.titleContainer}>
+          <ThemedText type="title" style={{ flex: 1, textAlign: "center" }}>
+            أهلا وسهلا
+          </ThemedText>
         </ThemedView>
+
+        <View
+          style={{
+            display: "flex",
+            flexDirection: "row",
+            flexWrap: "wrap",
+            gap: 15,
+          }}
+        >
+          {squareData.map((item, index) => (
+            <View
+              key={index}
+              style={[styles.square, { backgroundColor: item.color }]}
+            >
+              <Pressable onPress={() => handleSquarePress(index)}>
+                <View style={{ alignItems: "center" }}>
+                  <ThemedText style={styles.squareText}>
+                    {item.title}
+                  </ThemedText>
+                  <ThemedText
+                    type="subtitle"
+                    style={{ color: "white", opacity: 0.75, marginTop: 10 }}
+                  >
+                    {item.value}
+                  </ThemedText>
+                </View>
+              </Pressable>
+            </View>
+          ))}
+        </View>
       </ThemedView>
-    </ScrollView>
+    </ThemedView>
   );
 }
 
