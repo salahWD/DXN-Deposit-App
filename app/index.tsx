@@ -1,56 +1,52 @@
-import { useFonts } from 'expo-font';
+import { useFonts } from "expo-font";
 import { getUserSession } from "@/utils/functions";
 
-import { StyleSheet } from 'react-native';
+import { StyleSheet } from "react-native";
 
-import { db } from '@/firebaseConfig';
+import { db } from "@/firebaseConfig";
 import { doc, setDoc, getDoc } from "firebase/firestore";
-import { useState, useEffect } from 'react';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useState, useEffect } from "react";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
-import { router } from 'expo-router';
-import CryptoJS from 'crypto-js';
-import LoginPage from '@/components/LoginPage';
+import { router } from "expo-router";
+import CryptoJS from "crypto-js";
+import LoginPage from "@/components/LoginPage";
 
-
-console.log("index - page")
-
+console.log("index - page");
 
 export default function IndexScreen() {
-  
   const [memberCode, setMemberCode] = useState("");
   const [password, setPassword] = useState("");
-  
+
   const [isMounted, setIsMounted] = useState(false);
-  
+
   const [loaded] = useFonts({
-    SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
+    SpaceMono: require("../assets/fonts/SpaceMono-Regular.ttf"),
   });
-  
+
   useEffect(() => {
     if (isMounted && loaded) {
       async function checkUserState() {
         const Id = await getUserSession();
         console.log(Id);
         if (Id) {
-          
-          const userDocRef = doc(db, 'deposits', Id);
+          const userDocRef = doc(db, "deposits", Id);
           const userDoc = await getDoc(userDocRef);
 
           if (userDoc.exists()) {
             const userData = userDoc.data();
 
             if (userData?.isAdmin == true) {
-              saveUserSession(Id, true);// true => is admin = yes
-              router.replace('/admin');
+              saveUserSession(Id, true); // true => is admin = yes
+              router.replace("/admin");
             } else {
-              router.replace('/home');
+              router.replace("/home");
             }
           } else {
-            console.error('No user found with this email');
+            console.error("No user found with this email");
           }
         } else {
-          console.log('User should login');
+          console.log("User should login");
         }
       }
 
@@ -62,7 +58,6 @@ export default function IndexScreen() {
     setIsMounted(true);
   }, []);
 
-
   function verifyPassword(inputPassword: string, storedHashedPassword: string) {
     const hashedInputPassword = CryptoJS.SHA256(inputPassword).toString();
     return hashedInputPassword === storedHashedPassword;
@@ -70,29 +65,31 @@ export default function IndexScreen() {
 
   async function registerUser() {
     const hashedPassword = CryptoJS.SHA256(password).toString();
-    const userDocRef = doc(db, 'deposits', memberCode);
+    const userDocRef = doc(db, "deposits", memberCode);
 
-    const isRegisteredUser = await getDoc(doc(db, 'deposits', memberCode));
+    const isRegisteredUser = await getDoc(doc(db, "deposits", memberCode));
 
-    console.log("is this user registered before ? ==>", isRegisteredUser.exists())
+    console.log(
+      "is this user registered before ? ==>",
+      isRegisteredUser.exists()
+    );
 
     if (isRegisteredUser.exists()) {
-      alert("رقم العضوية هذا مسجل بالفعل, جرّب تسجيل الدخول")
-    }else {
-      
+      alert("رقم العضوية هذا مسجل بالفعل, جرّب تسجيل الدخول");
+    } else {
       await setDoc(userDocRef, {
         password: hashedPassword,
         createdAt: new Date(),
       });
-  
+
       saveUserSession(memberCode);
-      console.log('User registered successfully');
-      router.replace('/home');
+      console.log("User registered successfully");
+      router.replace("/home");
     }
   }
 
   async function loginUser() {
-    const userDocRef = doc(db, 'deposits', memberCode);
+    const userDocRef = doc(db, "deposits", memberCode);
     const userDoc = await getDoc(userDocRef);
 
     if (userDoc.exists()) {
@@ -100,21 +97,21 @@ export default function IndexScreen() {
       const isPasswordCorrect = verifyPassword(password, userData.password);
 
       if (isPasswordCorrect) {
-        console.log('Login successful');
+        console.log("Login successful");
         saveUserSession(memberCode);
-        router.replace('/home');
+        router.replace("/home");
         // Save user session data here
       } else {
-        console.error('Invalid password');
+        console.error("Invalid password");
       }
     } else {
-      console.error('No user found with this email');
+      console.error("No user found with this email");
     }
   }
 
   async function saveUserSession(id: string, isAdmin: boolean = false) {
-    await AsyncStorage.setItem('member_code', id);
-    await AsyncStorage.setItem('isAdmin', JSON.stringify(isAdmin));
+    await AsyncStorage.setItem("member_code", id);
+    await AsyncStorage.setItem("isAdmin", JSON.stringify(isAdmin));
   }
 
   return (
@@ -122,7 +119,8 @@ export default function IndexScreen() {
       login={loginUser}
       register={registerUser}
       updateMemberCode={setMemberCode}
-      updatePassword={setPassword} />
+      updatePassword={setPassword}
+    />
   );
 }
 
@@ -132,12 +130,12 @@ const styles = StyleSheet.create({
     gap: 8,
     marginTop: 24,
     paddingHorizontal: 45,
-  }, 
+  },
   formRow: {
     marginBottom: 12,
     borderBottomColor: "#999",
     borderBottomWidth: 1,
-  }, 
+  },
   label: {
     fontSize: 18,
     color: "#666",

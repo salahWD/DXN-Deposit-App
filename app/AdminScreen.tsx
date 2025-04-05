@@ -21,14 +21,12 @@ const AdminPage = () => {
       {orders.length === 0 ? (
         <Text>لا يوجد طلبات</Text>
       ) : (
-        orders.map((order: Order) => (
-          <View key={order.id} style={styles.orderBox}>
+        orders.map((order: Order, index) => (
+          <View key={index} style={styles.orderBox}>
             <Text style={styles.orderTitle}>العضوية: {order.userId}</Text>
             {order.products.map((product: OrderProducts, idx) => (
-              <View style={styles.productRow}>
-                <Text key={idx} style={styles.productTitle}>
-                  {product.title}{" "}
-                </Text>
+              <View style={styles.productRow} key={idx}>
+                <Text style={styles.productTitle}>{product.title} </Text>
                 <Text style={{ textAlign: "left" }}>(x{product.count})</Text>
               </View>
             ))}
@@ -72,7 +70,7 @@ export default AdminPage;
 const styles = StyleSheet.create({
   orderBox: {
     marginVertical: 10,
-    elevation: 1, // Shadow for Android
+    elevation: 1,
     padding: 10,
     borderRadius: 8,
   },
@@ -99,7 +97,6 @@ const styles = StyleSheet.create({
   buttonsContainer: {
     flexDirection: "row",
     gap: 10,
-    flex: 1,
     marginTop: 8,
   },
   button: {
