@@ -1,4 +1,4 @@
-import React, { memo } from "react";
+import React, { useEffect, useState } from "react";
 import { FlatList, SafeAreaView, Text, View } from "react-native";
 import { I18nManager } from "react-native";
 
@@ -6,6 +6,10 @@ import ProductCard from "./ProductCard";
 import { useProducts } from "@/contexts/ProductContext"; // Adjust the path as needed
 import { productPrice } from "@/utils/functions";
 import { Product } from "@/utils/types";
+import { getUserSession } from "@/utils/functions";
+import { db } from "@/firebaseConfig";
+import { DepositProduct } from "@/utils/types";
+import { doc, onSnapshot, Unsubscribe } from "firebase/firestore";
 
 // Force RTL layout (as per your earlier request)
 I18nManager.allowRTL(true);
@@ -14,10 +18,44 @@ I18nManager.forceRTL(true);
 interface ProductListingProps {
   updateOrder: (product: Product, count: number) => void;
   resetKey: number;
+  depositCount: number;
 }
 
 const ProductListing = ({ resetKey, updateOrder }: ProductListingProps) => {
   const { products, dollarPrice, loading } = useProducts();
+  const [depositProducts, setDepositProducts] = useState<DepositProduct[]>([]);
+
+  useEffect(() => {
+    let unsubscribe: Unsubscribe;
+    const getDepositProducts = async () => {
+      const userId = await getUserSession();
+      if (userId) {
+        const depositRef = doc(db, "deposits", userId);
+        unsubscribe = onSnapshot(
+          depositRef,
+          (snapshot) => {
+            const data = snapshot.data();
+            if (data && data.products) {
+              setDepositProducts(data.products);
+            } else {
+              setDepositProducts([]);
+            }
+          },
+          (error) => {
+            console.error("Error fetching deposit:", error);
+          }
+        );
+      } else {
+        console.log("error no user id is found");
+      }
+    };
+    getDepositProducts();
+    console.log("====================");
+    console.log(depositProducts);
+    return () => {
+      if (unsubscribe) unsubscribe();
+    };
+  }, []);
 
   if (loading)
     return (
@@ -39,9 +77,12 @@ const ProductListing = ({ resetKey, updateOrder }: ProductListingProps) => {
         data={products}
         renderItem={({ item: product }) => {
           return (
-            <MemoizedProductCard
+            <ProductCard
               key={`${product.id}-${resetKey}`}
               handleChangedCount={updateOrder}
+              depositCount={
+                depositProducts.find((depP) => depP.id == product.id)?.count
+              }
               selectedCount={product.count}
               product={product}
               price={productPrice(product.price, dollarPrice)}
@@ -54,7 +95,5 @@ const ProductListing = ({ resetKey, updateOrder }: ProductListingProps) => {
     </View>
   );
 };
-
-const MemoizedProductCard = memo(ProductCard);
 
 export default ProductListing;

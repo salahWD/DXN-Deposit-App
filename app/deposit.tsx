@@ -17,6 +17,7 @@ import {
 
 import { getFirestore, doc, onSnapshot, Unsubscribe } from "firebase/firestore";
 import { useRouter } from "expo-router";
+import React from "react";
 
 const getStatusLabel = (product: DepositProduct) => {
   const { paid, received, points } = product;
@@ -128,7 +129,7 @@ export default function DepositScreen() {
           </ThemedView>
           {summary()}
           {products.length === 0 ? (
-            <Text>No products in your deposit</Text>
+            <Text>لا يوجد منتجات في صندوقك</Text>
           ) : (
             <FlatList
               data={products}
@@ -177,6 +178,10 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
   },
-  productTitle: { fontSize: 16 },
-  statusLabel: { fontSize: 14, fontWeight: "bold" },
+  productTitle: { fontSize: 16, flex: 1 },
+  statusLabel: {
+    marginLeft: 8,
+    fontSize: 14,
+    fontWeight: "bold",
+  },
 });

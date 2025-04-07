@@ -1,11 +1,4 @@
-import {
-  StyleSheet,
-  View,
-  Text,
-  ScrollView,
-  TouchableOpacity,
-  Pressable,
-} from "react-native";
+import { StyleSheet, View, Pressable } from "react-native";
 import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
 import { router } from "expo-router";
@@ -17,6 +10,7 @@ import {
   homePageStats,
 } from "@/utils/functions";
 import { useProducts } from "@/contexts/ProductContext"; // Adjust the path as needed
+import React from "react";
 
 export default function HomeScreen() {
   const [depositProductsCount, setDepositProductsCount] = useState(0);

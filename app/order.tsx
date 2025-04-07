@@ -16,6 +16,7 @@ import { router } from "expo-router";
 import { submitOrder } from "@/utils/functions";
 import { Order, Product } from "@/utils/types";
 import { getUserSession } from "@/utils/functions";
+import React from "react";
 
 export default function OrderScreen() {
   const [orderProducts, setOrderProducts] = useState<Order[]>([]); // Array of {id, title, count}
