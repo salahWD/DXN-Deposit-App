@@ -11,39 +11,49 @@ import { ThemedView } from "@/components/ThemedView";
 import { router } from "expo-router";
 import { useEffect, useState } from "react";
 
-import { getUserSession, homePageStats } from "@/utils/functions";
+import {
+  getUserSession,
+  getUserSessionStatus,
+  homePageStats,
+} from "@/utils/functions";
 import { useProducts } from "@/contexts/ProductContext"; // Adjust the path as needed
 
 export default function HomeScreen() {
   const [depositProductsCount, setDepositProductsCount] = useState(0);
   const [currentBalance, setCurrentBalance] = useState(0);
+  const [admin, setAdmin] = useState(false);
 
   const squareData = [
-    { title: "طلب جديد", color: "#4CAF50", value: "+" }, // Green
-    { title: "صندوق الودائع", color: "#2196F3", value: "45 منتج" }, // Blue
+    { title: "طلب جديد", color: "#4CAF50", value: "+", adminOnly: false }, // Green
+    {
+      title: "صندوق الودائع",
+      color: "#2196F3",
+      value: "45 منتج",
+      adminOnly: false,
+    }, // Blue
     {
       title: "عدد المنتجات المودوعة",
       color: "#FF9800",
       value: depositProductsCount,
+      adminOnly: false,
     }, // Orange
-    { title: "الرصيد الحالي", color: "#9C27B0", value: currentBalance + " TL" }, // Purple
     {
+      title: "الرصيد الحالي",
+      color: "#9C27B0",
+      value: currentBalance + " TL",
+      adminOnly: false,
+    }, // Purple
+    {
+      adminOnly: true,
       title: "مراجعة الطلبات",
       color: "red",
-      value: (
-        <Pressable onPress={() => router.replace("/admin")}>
-          <Text>خاص بالإدارة</Text>
-        </Pressable>
-      ),
+      value: "خاص بالإدارة",
     },
     {
+      adminOnly: true,
       title: "إدارة الودائع",
       color: "green",
-      value: (
-        <Pressable onPress={() => router.replace("/depositManagement")}>
-          <Text>خاص بالإدارة</Text>
-        </Pressable>
-      ),
+      value: "خاص بالإدارة",
     },
   ];
 
@@ -51,6 +61,8 @@ export default function HomeScreen() {
 
   useEffect(() => {
     const getStats = async () => {
+      const status = await getUserSessionStatus();
+      setAdmin(status);
       const Id = await getUserSession();
 
       if (Id) {
@@ -76,6 +88,10 @@ export default function HomeScreen() {
       // router.replace('/login');
       // } else {
       // router.replace('/login');
+    } else if (route == 4) {
+      router.replace("/admin");
+    } else if (route == 5) {
+      router.replace("/depositManagement");
     }
   };
 
@@ -96,26 +112,29 @@ export default function HomeScreen() {
             gap: 15,
           }}
         >
-          {squareData.map((item, index) => (
-            <View
-              key={index}
-              style={[styles.square, { backgroundColor: item.color }]}
-            >
-              <Pressable onPress={() => handleSquarePress(index)}>
-                <View style={{ alignItems: "center" }}>
-                  <ThemedText style={styles.squareText}>
-                    {item.title}
-                  </ThemedText>
-                  <ThemedText
-                    type="subtitle"
-                    style={{ color: "white", opacity: 0.75, marginTop: 10 }}
-                  >
-                    {item.value}
-                  </ThemedText>
-                </View>
-              </Pressable>
-            </View>
-          ))}
+          {squareData.map((item, index) => {
+            if (item.adminOnly && !admin) return null;
+            return (
+              <View
+                key={index}
+                style={[styles.square, { backgroundColor: item.color }]}
+              >
+                <Pressable onPress={() => handleSquarePress(index)}>
+                  <View style={{ alignItems: "center" }}>
+                    <ThemedText style={styles.squareText}>
+                      {item.title}
+                    </ThemedText>
+                    <ThemedText
+                      type="subtitle"
+                      style={{ color: "white", opacity: 0.75, marginTop: 10 }}
+                    >
+                      {item.value}
+                    </ThemedText>
+                  </View>
+                </Pressable>
+              </View>
+            );
+          })}
         </View>
       </ThemedView>
     </ThemedView>

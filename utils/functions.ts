@@ -20,6 +20,12 @@ export const getUserSession = async () => {
   return await AsyncStorage.getItem('member_code');
 }
 
+export const getUserSessionStatus = async () => {
+  const val = await AsyncStorage.getItem('isAdmin');
+  const isAdmin = val ? JSON.parse(val) : false;
+  return isAdmin;
+}
+
 export const getDollarPrice = async () => {
   let dollarPrice = 35;
 
