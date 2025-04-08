@@ -10,6 +10,7 @@ import {
   deleteDoc,
   setDoc,
   Unsubscribe,
+  arrayUnion,
 } from "firebase/firestore";
 import { db } from "@/firebaseConfig";
 
@@ -251,6 +252,7 @@ export const addTransactionToDeposit = async (
   amount: number,
   note?: string
 ) => {
+  console.log("adding transaction started")
   const userDepositRef = doc(db, 'deposits', userId);
   const newTransaction: Transaction = {
     id: Date.now().toString(), // Simple unique ID

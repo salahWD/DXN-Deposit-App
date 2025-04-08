@@ -80,6 +80,7 @@ const DepositManagementScreen = () => {
       );
       setTransactionAmount("");
       setTransactionNote("");
+      console.log("transaction added: " + amount);
     } else {
       router.replace("/");
       console.log("user is not logged in");
@@ -87,7 +88,6 @@ const DepositManagementScreen = () => {
   };
 
   const renderDeposit = ({ item }: { item: Deposit }) => {
-    console.log(item?.transactions);
     if (item?.transactions) {
       const balance = calculateBalance(item?.transactions);
       const isExpanded = expandedUserId === item.userId;
