@@ -1,4 +1,3 @@
-import { useFonts } from "expo-font";
 import { getUserSession } from "@/utils/functions";
 
 import { StyleSheet } from "react-native";
@@ -11,6 +10,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { router } from "expo-router";
 import CryptoJS from "crypto-js";
 import LoginPage from "@/components/LoginPage";
+import React from "react";
 
 console.log("index - page");
 
@@ -18,44 +18,30 @@ export default function IndexScreen() {
   const [memberCode, setMemberCode] = useState("");
   const [password, setPassword] = useState("");
 
-  const [isMounted, setIsMounted] = useState(false);
-
-  const [loaded] = useFonts({
-    SpaceMono: require("../assets/fonts/SpaceMono-Regular.ttf"),
-  });
-
   useEffect(() => {
-    if (isMounted && loaded) {
-      async function checkUserState() {
+    async function checkUserState() {
+      try {
         const Id = await getUserSession();
-        console.log(Id);
         if (Id) {
           const userDocRef = doc(db, "deposits", Id);
           const userDoc = await getDoc(userDocRef);
 
           if (userDoc.exists()) {
             const userData = userDoc.data();
-
             if (userData?.isAdmin == true) {
-              saveUserSession(Id, true); // true => is admin = yes
+              await saveUserSession(Id, true);
               router.replace("/admin");
             } else {
               router.replace("/home");
             }
-          } else {
-            console.error("No user found with this email");
           }
-        } else {
-          console.log("User should login");
         }
+      } catch (error) {
+        console.error("Error in checkUserState:", error);
       }
-
-      checkUserState();
     }
-  }, [isMounted, loaded]);
 
-  useEffect(() => {
-    setIsMounted(true);
+    checkUserState();
   }, []);
 
   function verifyPassword(inputPassword: string, storedHashedPassword: string) {
@@ -110,8 +96,12 @@ export default function IndexScreen() {
   }
 
   async function saveUserSession(id: string, isAdmin: boolean = false) {
-    await AsyncStorage.setItem("member_code", id);
-    await AsyncStorage.setItem("isAdmin", JSON.stringify(isAdmin));
+    try {
+      await AsyncStorage.setItem("member_code", id);
+      await AsyncStorage.setItem("isAdmin", JSON.stringify(isAdmin));
+    } catch (error) {
+      console.error("Error saving session:", error);
+    }
   }
 
   return (
