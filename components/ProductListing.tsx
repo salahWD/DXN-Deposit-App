@@ -59,14 +59,14 @@ const ProductListing = ({ resetKey, updateOrder }: ProductListingProps) => {
 
   if (loading)
     return (
-      <View>
+      <View style={{ flex: 1, paddingHorizontal: 32, paddingVertical: 10 }}>
         <Text>Loading...</Text>
       </View>
     );
   if (products.length === 0)
     return (
-      <View>
-        <Text>No products available</Text>
+      <View style={{ flex: 1, paddingHorizontal: 32, paddingVertical: 10 }}>
+        <Text>لا يوجد منتجات</Text>
       </View>
     );
 

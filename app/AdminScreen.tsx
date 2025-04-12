@@ -7,6 +7,7 @@ import {
   subscribeToOrders,
   rejectOrder,
 } from "@/utils/functions";
+import React from "react";
 
 const AdminPage = () => {
   const [orders, setOrders] = useState<Order[]>([]);

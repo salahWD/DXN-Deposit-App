@@ -1,19 +1,11 @@
 import { useEffect, useState } from "react";
-import { router } from "expo-router";
 import { getUserSession } from "@/utils/functions";
 import { DepositProduct } from "@/utils/types";
 
 import Icon from "react-native-vector-icons/MaterialCommunityIcons";
 import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
-import {
-  StyleSheet,
-  FlatList,
-  View,
-  ScrollView,
-  Pressable,
-  Text,
-} from "react-native";
+import { StyleSheet, FlatList, View, Pressable, Text } from "react-native";
 
 import { getFirestore, doc, onSnapshot, Unsubscribe } from "firebase/firestore";
 import { useRouter } from "expo-router";
@@ -33,6 +25,8 @@ const getStatusLabel = (product: DepositProduct) => {
 
 export default function DepositScreen() {
   const [products, setProducts] = useState<DepositProduct[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const router = useRouter();
   const db = getFirestore();
 
@@ -49,12 +43,18 @@ export default function DepositScreen() {
             const data = snapshot.data();
             if (data && data.products) {
               setProducts(data.products);
+              setError(null);
             } else {
               setProducts([]);
+              setError("لا توجد منتجات في وديعتك حاليًا");
             }
+            setLoading(false);
           },
           (error) => {
             console.error("Error fetching deposit:", error);
+            setError("غير متصل بالإنترنت أو حدث خطأ. حاول لاحقًا.");
+            setProducts([]);
+            setLoading(false);
           }
         );
       } else {
@@ -107,6 +107,18 @@ export default function DepositScreen() {
     );
   };
 
+  if (products.length === 0 && !loading) {
+    return <Text>لا توجد منتجات في الوديعة أو أنت غير متصل بالإنترنت</Text>;
+  }
+
+  if (loading) {
+    return (
+      <View style={styles.container}>
+        <Text>جارٍ التحميل...</Text>
+      </View>
+    );
+  }
+
   return (
     <ThemedView style={styles.squaresContainer}>
       <View style={styles.container}>
@@ -127,6 +139,7 @@ export default function DepositScreen() {
               صندوق الودائع
             </ThemedText>
           </ThemedView>
+          {error && <Text style={styles.error}>{error}</Text>}
           {summary()}
           {products.length === 0 ? (
             <Text>لا يوجد منتجات في صندوقك</Text>
@@ -184,4 +197,5 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: "bold",
   },
+  error: { color: "red", marginBottom: 16 },
 });
