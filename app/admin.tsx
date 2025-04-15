@@ -3,7 +3,7 @@ import { ThemedView } from "@/components/ThemedView";
 
 import Icon from "react-native-vector-icons/MaterialCommunityIcons";
 
-import { StyleSheet, ScrollView, Pressable, Text, View } from "react-native";
+import { StyleSheet, Pressable, Text, View } from "react-native";
 import { useRouter } from "expo-router"; // Use expo-router for navigation
 
 import AdminPage from "@/app/AdminScreen";
@@ -24,7 +24,7 @@ const ProtectedAdminPage = () => {
   }
 
   return (
-    <ThemedView style={styles.squaresContainer}>
+    <View style={styles.squaresContainer}>
       <ThemedView style={styles.container}>
         <ThemedView style={styles.content}>
           <ThemedView style={styles.titleContainer}>
@@ -39,14 +39,21 @@ const ProtectedAdminPage = () => {
                 }}
               />
             </Pressable>
-            <ThemedText type="title" style={{ flex: 1, textAlign: "right" }}>
+            <ThemedText
+              type="title"
+              style={{
+                flex: 1,
+                textAlign: "right",
+                paddingTop: 8,
+              }}
+            >
               مراجعة الطلبات
             </ThemedText>
           </ThemedView>
-          <AdminPage />
         </ThemedView>
+        <AdminPage />
       </ThemedView>
-    </ThemedView>
+    </View>
   );
 };
 
@@ -60,8 +67,8 @@ const styles = StyleSheet.create({
   },
   container: { height: "100%", width: "100%" },
   content: {
-    flex: 1,
-    padding: 32,
+    paddingHorizontal: 32,
+    paddingTop: 28,
     gap: 16,
     overflow: "hidden",
   },
@@ -70,6 +77,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 8,
     justifyContent: "space-between",
-    marginBottom: 20,
+    marginBottom: 10,
   },
 });

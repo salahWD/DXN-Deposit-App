@@ -12,6 +12,7 @@ export type Order = {
   tag?: number,
   title: string,
   count: number,
+  orderMemberId: string,
 };
 
 export type Product = {
@@ -27,7 +28,9 @@ export type Product = {
 };
 
 export type Deposit = {
+  member_code: string;
   password: string,
+  username: string,
   isAdmin: boolean,
   products?: DepositProduct[],
   transactions?: Transaction[],
@@ -49,3 +52,38 @@ export type Transaction = {
   date: string;
   note?: string;
 }
+
+export const orderStatuses = [
+  {
+    title: "تم كلياً",
+    details: {points: true, paid: true, received: true},
+  },
+  {
+    title: "إستلمت ولم تنزل",
+    details: {points: false, paid: true, received: true},
+  },
+  {
+    title: "بقي استلام المنتج",
+    details: {points: true, paid: true, received: false},
+  },
+  {
+    title: "نزلت ولم تدفع",
+    details: {points: true, paid: false, received: true},
+  },
+  {
+    title: "نقاط بدون دفع او استلام",
+    details: {points: true, paid: false, received: false},
+  },
+  {
+    title: "دفعت فقط",
+    details: {points: false, paid: true, received: false},
+  },
+  {
+    title: "منتج سلفة",
+    details: {points: false, paid: false, received: true},
+  },
+  {
+    title: "طلب معلق",
+    details: {points: false, paid: false, received: false},
+  },
+];

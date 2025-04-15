@@ -81,7 +81,8 @@ const ProductListing = ({ resetKey, updateOrder }: ProductListingProps) => {
               key={`${product.id}-${resetKey}`}
               handleChangedCount={updateOrder}
               depositCount={
-                depositProducts.find((depP) => depP.id == product.id)?.count
+                depositProducts.find((depP) => depP.id == product.id)?.count ||
+                0
               }
               selectedCount={product.count}
               product={product}

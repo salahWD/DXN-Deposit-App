@@ -23,6 +23,8 @@ const getStatusLabel = (product: DepositProduct) => {
   return { label: "طلب معلق", color: "gray" };
 };
 
+export { getStatusLabel };
+
 export default function DepositScreen() {
   const [products, setProducts] = useState<DepositProduct[]>([]);
   const [loading, setLoading] = useState(true);
@@ -107,10 +109,6 @@ export default function DepositScreen() {
     );
   };
 
-  if (products.length === 0 && !loading) {
-    return <Text>لا توجد منتجات في الوديعة أو أنت غير متصل بالإنترنت</Text>;
-  }
-
   if (loading) {
     return (
       <View style={styles.container}>
@@ -142,7 +140,7 @@ export default function DepositScreen() {
           {error && <Text style={styles.error}>{error}</Text>}
           {summary()}
           {products.length === 0 ? (
-            <Text>لا يوجد منتجات في صندوقك</Text>
+            <Text style={styles.dangerAlert}>لا يوجد طلبات</Text>
           ) : (
             <FlatList
               data={products}
@@ -198,4 +196,14 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
   },
   error: { color: "red", marginBottom: 16 },
+  dangerAlert: {
+    marginVertical: 6,
+    borderWidth: 1,
+    borderRadius: 10,
+    padding: 10,
+    paddingTop: 10,
+    textAlign: "center",
+    borderColor: "#F88379",
+    backgroundColor: "#F8837960",
+  },
 });

@@ -1,14 +1,30 @@
-import { Stack } from "expo-router";
+import { router, Stack } from "expo-router";
 import { ProductProvider } from "@/contexts/ProductContext";
 import { StatusBar } from "expo-status-bar";
-import { I18nManager } from "react-native";
-import React from "react";
+import { BackHandler, I18nManager } from "react-native";
+import * as ScreenOrientation from "expo-screen-orientation";
+import React, { useEffect } from "react";
 
 // Force RTL layout
 I18nManager.allowRTL(true);
 I18nManager.forceRTL(true);
 
 export default function RootLayout() {
+  useEffect(() => {
+    ScreenOrientation.unlockAsync();
+
+    return () => {
+      ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.DEFAULT);
+    };
+  }, []);
+
+  const backAction = () => {
+    router.replace("/home");
+    return true;
+  };
+
+  BackHandler.addEventListener("hardwareBackPress", backAction);
+
   return (
     <ProductProvider>
       <Stack>

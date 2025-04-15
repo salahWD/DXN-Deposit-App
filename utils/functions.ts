@@ -71,7 +71,7 @@ export const productPrice = (dollar:number, initPrice:number): number => {
 };
 
 
-export const submitOrder = async (userId: string | number, orderProducts: Order[]) => {
+export const submitOrder = async (userId: string | number, orderMemberId: string | number, orderProducts: Order[]) => {
 
   if (orderProducts.length === 0) {
     alert('ام يتم اختيار اي منتجات!');
@@ -80,6 +80,7 @@ export const submitOrder = async (userId: string | number, orderProducts: Order[
 
   await addDoc(collection(db, 'orders'), {
     userId,
+    orderMemberId,
     products: orderProducts,
     status: 'pending',
     timestamp: new Date().toISOString(),
@@ -166,11 +167,30 @@ export const homePageStats = async (userId: string, dollarPrice=0, products) => 
 };
 
 export const subscribeToOrders = (callback: (orders: Order[]) => void) => {
-  return onSnapshot(collection(db, "orders"), (snapshot) => {
-    const ordersArray = snapshot.docs.map((doc) => ({
-      id: doc.id,
-      ...doc.data(),
-    }));
+  return onSnapshot(collection(db, "orders"), async (snapshot) => {
+    const ordersArray = await Promise.all(
+      snapshot.docs.map(async (docSnapshot) => {
+        const orderData = docSnapshot.data();
+        const userId = orderData.userId;
+        let username = "";
+
+        try {
+          const userDocRef = doc(db, "deposits", String(userId));
+          const userDoc = await getDoc(userDocRef);
+          if (userDoc.exists()) {
+            username = userDoc.data()?.username || "";
+          }
+        } catch (error) {
+          console.error(`Error fetching username for userId ${userId}:`, error);
+        }
+
+        return {
+          id: docSnapshot.id,
+          ...orderData,
+          username,
+        };
+      })
+    );
     callback(ordersArray);
   });
 };
@@ -205,19 +225,22 @@ export const fetchDeposits = (callback: (deposits: Deposit[]) => void): Unsubscr
 };
 
 // Add a new product to a user's deposit
-export const addProductToDeposit = async (userId: string, title: string, count: number) => {
+export const addProductToDeposit = async (userId: string, title: string, count: number, paid=false, points=false, received=false) => {
+  console.log("started adding product to deposit")
   const userDepositRef = doc(db, 'deposits', userId);
   const newProduct: Product = {
     id: Date.now().toString(), // Simple unique ID
     title,
     count,
-    paid: false,
-    received: false,
-    points: false,
+    paid: paid,
+    received: received,
+    points: points,
   };
+  console.log("new product", newProduct)
   await updateDoc(userDepositRef, {
     products: arrayUnion(newProduct),
   });
+  console.log("product added to deposit")
 };
 
 // Edit a product's count in a user's deposit

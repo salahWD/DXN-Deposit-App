@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
   Pressable,
   Text,
+  Modal,
 } from "react-native";
 import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
@@ -17,10 +18,12 @@ import { submitOrder } from "@/utils/functions";
 import { Order, Product } from "@/utils/types";
 import { getUserSession } from "@/utils/functions";
 import React from "react";
+import OrderForm from "@/components/OrderForm";
 
 export default function OrderScreen() {
   const [orderProducts, setOrderProducts] = useState<Order[]>([]); // Array of {id, title, count}
   const [resetKey, setResetKey] = useState(0);
+  const [isModalVisible, setIsModalVisible] = useState(false);
 
   const handleGoBack = () => {
     router.replace("/home");
@@ -46,10 +49,10 @@ export default function OrderScreen() {
     console.log("order - handleChangedOrder - changed the OrderProducts state");
   };
 
-  const handleSubmitOrder = async () => {
+  const handleSubmitOrder = async (orderMemberId: string) => {
     const Id = await getUserSession();
     if (Id) {
-      await submitOrder(Id, orderProducts);
+      await submitOrder(Id, orderMemberId, orderProducts);
       setOrderProducts([]);
       setResetKey((prev) => prev + 1);
       router.replace("/home");
@@ -57,6 +60,14 @@ export default function OrderScreen() {
       console.log("you have no user id please login first");
       router.replace("/");
     }
+  };
+
+  const handleOpenModal = () => {
+    setIsModalVisible(true);
+  };
+
+  const handleCloseModal = () => {
+    setIsModalVisible(false);
   };
 
   return (
@@ -86,7 +97,7 @@ export default function OrderScreen() {
 
       <ThemedView style={styles.content}>
         <View>
-          <Pressable onPress={handleSubmitOrder}>
+          <Pressable onPress={handleOpenModal}>
             <View
               style={{
                 width: "100%",
@@ -106,6 +117,29 @@ export default function OrderScreen() {
               </Text>
             </View>
           </Pressable>
+          <Modal
+            visible={isModalVisible}
+            transparent={true}
+            animationType="fade"
+            onRequestClose={handleCloseModal}
+            hardwareAccelerated={true}
+            presentationStyle="overFullScreen"
+            statusBarTranslucent={true}
+            supportedOrientations={["portrait", "landscape"]}
+            onDismiss={handleCloseModal}
+          >
+            <View style={styles.modalOverlay}>
+              <View style={styles.modalContent}>
+                <OrderForm
+                  onSubmit={(value) => {
+                    console.log("Form submitted with value:", value);
+                    handleSubmitOrder(value);
+                    handleCloseModal();
+                  }}
+                />
+              </View>
+            </View>
+          </Modal>
         </View>
       </ThemedView>
     </ThemedView>
@@ -127,5 +161,17 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 8,
     justifyContent: "space-between",
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  modalContent: {
+    width: "80%",
+    backgroundColor: "white",
+    borderRadius: 8,
+    padding: 16,
   },
 });

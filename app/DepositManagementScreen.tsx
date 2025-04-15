@@ -28,13 +28,24 @@ import { Deposit, DepositProduct, Transaction } from "@/utils/types";
 import Icon from "react-native-vector-icons/MaterialCommunityIcons";
 import { ThemedView } from "@/components/ThemedView";
 import { ThemedText } from "@/components/ThemedText";
+import { useProducts } from "@/contexts/ProductContext";
+import { orderStatuses } from "@/utils/types";
+import SelectDropdown from "react-native-select-dropdown"; // Import SelectDropdown
+import React from "react";
 
 const DepositManagementScreen = () => {
+  const { products } = useProducts(); // Fetch products from ProductContext
   const [deposits, setDeposits] = useState<Deposit[]>([]);
   const [expandedUserId, setExpandedUserId] = useState<string | null>(null);
-  const [newProduct, setNewProduct] = useState({ title: "", count: 1 });
+  const [newProductCount, setNewProductCount] = useState<
+    string | number | null
+  >(null);
   const [transactionAmount, setTransactionAmount] = useState("");
   const [transactionNote, setTransactionNote] = useState("");
+  const [selectedProductId, setSelectedProductId] = useState<string | null>(
+    null
+  );
+  const [selectedStatus, setSelectedStatus] = useState<string | null>(null);
 
   useEffect(() => {
     const unsubscribe = fetchDeposits((depositsData) => {
@@ -48,9 +59,29 @@ const DepositManagementScreen = () => {
   };
 
   const addProduct = async (userId: string) => {
-    if (!newProduct.title || newProduct.count <= 0) return;
-    await addProductToDeposit(userId, newProduct.title, newProduct.count);
-    setNewProduct({ title: "", count: 1 });
+    if (
+      !selectedProductId ||
+      parseInt(newProductCount?.toString() || "0") <= 0 ||
+      !selectedStatus
+    )
+      return;
+    const selectedProduct = products.find(
+      (p) => p.id.toString() === selectedProductId
+    );
+    if (selectedProduct) {
+      const { paid, points, received } = selectedStatus?.details;
+      await addProductToDeposit(
+        userId,
+        selectedProduct.title.ar,
+        newProductCount,
+        paid,
+        points,
+        received
+      );
+      setNewProductCount(1);
+      setSelectedProductId(null);
+      setSelectedStatus(null);
+    }
   };
 
   const editProduct = async (
@@ -109,7 +140,7 @@ const DepositManagementScreen = () => {
             <View style={styles.expandedContent}>
               {/* Product List */}
               <Text style={styles.sectionTitle}>المنتجات</Text>
-              {item.products.map((product, index) => (
+              {item?.products?.map((product, index) => (
                 <View key={index} style={styles.productRow}>
                   <Text style={styles.productTitle}>
                     {product.title} (x{product.count})
@@ -152,22 +183,88 @@ const DepositManagementScreen = () => {
               ))}
 
               {/* Add Product */}
-              <TextInput
-                style={styles.input}
-                placeholder="عنوان المنتج"
-                value={newProduct.title}
-                onChangeText={(text) =>
-                  setNewProduct({ ...newProduct, title: text })
-                }
+              <Text style={styles.sectionTitle}>إضافة منتج</Text>
+              <SelectDropdown
+                statusBarTranslucent={true}
+                defaultValue={"اختر منتجًا"}
+                data={products.map((product) => ({
+                  label: product.title.ar,
+                  value: product.id.toString(),
+                }))}
+                onSelect={(val) => {
+                  setSelectedProductId(val.value);
+                }}
+                renderButton={(selectedItem, isOpened) => {
+                  return (
+                    <View style={styles.dropdownButtonStyle}>
+                      <Text style={styles.dropdownButtonTxtStyle}>
+                        {selectedItem?.label || "اختر منتجًا"}
+                      </Text>
+                      <Icon
+                        name={isOpened ? "chevron-up" : "chevron-down"}
+                        style={styles.dropdownButtonArrowStyle}
+                      />
+                    </View>
+                  );
+                }}
+                renderItem={(item, index, isSelected) => {
+                  return (
+                    <View
+                      style={{
+                        ...styles.dropdownItemStyle,
+                        ...(isSelected && { backgroundColor: "#E9ECEF" }),
+                      }}
+                    >
+                      <Text style={styles.dropdownItemTxtStyle}>
+                        {item?.label}
+                      </Text>
+                    </View>
+                  );
+                }}
+                showsVerticalScrollIndicator={false}
+                dropdownStyle={styles.dropdownMenuStyle}
+              />
+              <SelectDropdown
+                statusBarTranslucent={true}
+                defaultValue={"اختر الحالة"}
+                data={orderStatuses}
+                onSelect={setSelectedStatus}
+                renderButton={(selectedItem, isOpened) => {
+                  return (
+                    <View style={styles.dropdownButtonStyle}>
+                      <Text style={styles.dropdownButtonTxtStyle}>
+                        {selectedItem?.title || "اختر الحالة"}
+                      </Text>
+                      <Icon
+                        name={isOpened ? "chevron-up" : "chevron-down"}
+                        style={styles.dropdownButtonArrowStyle}
+                      />
+                    </View>
+                  );
+                }}
+                renderItem={(item, index, isSelected) => {
+                  return (
+                    <View
+                      style={{
+                        ...styles.dropdownItemStyle,
+                        ...(isSelected && { backgroundColor: "#E9ECEF" }),
+                      }}
+                    >
+                      <Text style={styles.dropdownItemTxtStyle}>
+                        {item?.title}
+                      </Text>
+                    </View>
+                  );
+                }}
+                showsVerticalScrollIndicator={false}
+                dropdownStyle={styles.dropdownMenuStyle}
               />
               <TextInput
                 style={styles.input}
                 placeholder="Count"
-                value={newProduct.count.toString()}
+                value={newProductCount?.toString() || ""}
                 keyboardType="numeric"
-                onChangeText={(text) =>
-                  setNewProduct({ ...newProduct, count: parseInt(text) || 1 })
-                }
+                onChangeText={(text) => setNewProductCount(text || "")}
               />
               <Button
                 title="إضافة منتج"
@@ -297,6 +394,51 @@ const styles = StyleSheet.create({
   },
   productTitle: { flex: 1, textAlign: "right" },
   input: { borderWidth: 1, borderColor: "#ccc", padding: 8, marginVertical: 4 },
+
+  dropdownButtonStyle: {
+    width: "100%",
+    backgroundColor: "#F5F5F5",
+    borderRadius: 4,
+    flexDirection: "row",
+    alignItems: "center",
+    paddingRight: 3,
+    paddingTop: 3,
+    paddingBottom: 3,
+    marginTop: 8,
+  },
+  dropdownButtonTxtStyle: {
+    textAlign: "center",
+    marginHorizontal: "auto",
+    fontSize: 16,
+    paddingVertical: 4,
+    fontWeight: "500",
+    color: "#151E26",
+  },
+  dropdownButtonArrowStyle: {
+    fontSize: 18,
+  },
+  dropdownMenuStyle: {
+    backgroundColor: "white",
+    borderRadius: 6,
+  },
+  dropdownItemStyle: {
+    width: "100%",
+    flexDirection: "row",
+    paddingHorizontal: 12,
+    justifyContent: "center",
+    alignItems: "center",
+    paddingVertical: 2,
+  },
+  dropdownItemTxtStyle: {
+    textAlign: "right",
+    paddingVertical: 3,
+    borderBottomColor: "#ccc",
+    borderBottomWidth: 1,
+    flex: 1,
+    fontSize: 14,
+    fontWeight: "500",
+    color: "#151E26",
+  },
 });
 
 export default DepositManagementScreen;
