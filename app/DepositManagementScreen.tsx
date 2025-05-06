@@ -49,6 +49,10 @@ const DepositManagementScreen = () => {
 
   useEffect(() => {
     const unsubscribe = fetchDeposits((depositsData) => {
+      console.log(depositsData, "depositsData");
+      depositsData.forEach((deposit) => {
+        console.log(deposit.userId, "depositsData.userId");
+      });
       setDeposits(depositsData);
     });
     return () => unsubscribe();
@@ -117,21 +121,24 @@ const DepositManagementScreen = () => {
     }
   };
 
-  const renderDeposit = ({ item }: { item: Deposit }) => {
-    if (item?.transactions) {
-      const balance = calculateBalance(item?.transactions);
-      const isExpanded = expandedUserId === item.userId;
+  const renderDeposit = ({ item: deposit }: { item: Deposit }) => {
+    console.log(deposit, "deposit");
+    if (deposit) {
+      const balance = deposit?.deptAmount;
+      const isExpanded = expandedUserId === deposit.userId;
       return (
         <SafeAreaView style={styles.depositItem}>
           <TouchableOpacity
-            onPress={() => setExpandedUserId(isExpanded ? null : item.userId)}
+            onPress={() =>
+              setExpandedUserId(isExpanded ? null : deposit.userId)
+            }
           >
-            <Text style={styles.userId}>العضوية: {item.userId}</Text>
+            <Text style={styles.userId}>العضوية: {deposit.userId}</Text>
             <Text style={{ textAlign: "right" }}>
-              الرصيد: {balance} (إجمالي {item.transactions.length} عملية)
+              الرصيد: {balance} (إجمالي {deposit.transactions.length} عملية)
             </Text>
             <Text style={{ textAlign: "right" }}>
-              المنتجات: {item.products.length}
+              المنتجات: {deposit.products.length}
             </Text>
           </TouchableOpacity>
 
@@ -139,7 +146,7 @@ const DepositManagementScreen = () => {
             <View style={styles.expandedContent}>
               {/* Product List */}
               <Text style={styles.sectionTitle}>المنتجات</Text>
-              {item?.products?.map((product, index) => (
+              {deposit?.products?.map((product, index) => (
                 <View key={index} style={styles.productRow}>
                   <Text style={styles.productTitle}>
                     {product.title} (x{product.count})
@@ -148,7 +155,11 @@ const DepositManagementScreen = () => {
                     <View style={styles.controlsBtns}>
                       <TouchableOpacity
                         onPress={() =>
-                          editProduct(item.userId, product, product.count + 1)
+                          editProduct(
+                            deposit.userId,
+                            product,
+                            product.count + 1
+                          )
                         }
                       >
                         <View style={styles.button}>
@@ -157,7 +168,11 @@ const DepositManagementScreen = () => {
                       </TouchableOpacity>
                       <TouchableOpacity
                         onPress={() =>
-                          editProduct(item.userId, product, product.count - 1)
+                          editProduct(
+                            deposit.userId,
+                            product,
+                            product.count - 1
+                          )
                         }
                       >
                         <View style={styles.button}>
@@ -167,7 +182,9 @@ const DepositManagementScreen = () => {
                     </View>
                     <View style={styles.deleteProductBtn}>
                       <Pressable
-                        onPress={() => removeProduct(item.userId, product.id)}
+                        onPress={() =>
+                          removeProduct(deposit.userId, product.id)
+                        }
                       >
                         <Icon
                           name="trash-can-outline"
@@ -180,95 +197,6 @@ const DepositManagementScreen = () => {
                   </View>
                 </View>
               ))}
-
-              {/* Add Product */}
-              <Text style={styles.sectionTitle}>إضافة منتج</Text>
-              <SelectDropdown
-                statusBarTranslucent={true}
-                defaultValue={"اختر منتجًا"}
-                data={products.map((product) => ({
-                  label: product.title.ar,
-                  value: product.id.toString(),
-                }))}
-                onSelect={(val) => {
-                  setSelectedProductId(val.value);
-                }}
-                renderButton={(selectedItem, isOpened) => {
-                  return (
-                    <View style={styles.dropdownButtonStyle}>
-                      <Text style={styles.dropdownButtonTxtStyle}>
-                        {selectedItem?.label || "اختر منتجًا"}
-                      </Text>
-                      <Icon
-                        name={isOpened ? "chevron-up" : "chevron-down"}
-                        style={styles.dropdownButtonArrowStyle}
-                      />
-                    </View>
-                  );
-                }}
-                renderItem={(item, index, isSelected) => {
-                  return (
-                    <View
-                      style={{
-                        ...styles.dropdownItemStyle,
-                        ...(isSelected && { backgroundColor: "#E9ECEF" }),
-                      }}
-                    >
-                      <Text style={styles.dropdownItemTxtStyle}>
-                        {item?.label}
-                      </Text>
-                    </View>
-                  );
-                }}
-                showsVerticalScrollIndicator={false}
-                dropdownStyle={styles.dropdownMenuStyle}
-              />
-              <SelectDropdown
-                statusBarTranslucent={true}
-                defaultValue={"اختر الحالة"}
-                data={orderStatuses}
-                onSelect={setSelectedStatus}
-                renderButton={(selectedItem, isOpened) => {
-                  return (
-                    <View style={styles.dropdownButtonStyle}>
-                      <Text style={styles.dropdownButtonTxtStyle}>
-                        {selectedItem?.title || "اختر الحالة"}
-                      </Text>
-                      <Icon
-                        name={isOpened ? "chevron-up" : "chevron-down"}
-                        style={styles.dropdownButtonArrowStyle}
-                      />
-                    </View>
-                  );
-                }}
-                renderItem={(item, index, isSelected) => {
-                  return (
-                    <View
-                      style={{
-                        ...styles.dropdownItemStyle,
-                        ...(isSelected && { backgroundColor: "#E9ECEF" }),
-                      }}
-                    >
-                      <Text style={styles.dropdownItemTxtStyle}>
-                        {item?.title}
-                      </Text>
-                    </View>
-                  );
-                }}
-                showsVerticalScrollIndicator={false}
-                dropdownStyle={styles.dropdownMenuStyle}
-              />
-              <TextInput
-                style={styles.input}
-                placeholder="Count"
-                value={newProductCount?.toString() || ""}
-                keyboardType="numeric"
-                onChangeText={(text) => setNewProductCount(text || "")}
-              />
-              <Button
-                title="إضافة منتج"
-                onPress={() => addProduct(item.userId)}
-              />
 
               {/* Transactions */}
               <Text style={styles.sectionTitle}>إضافة عملية مالية</Text>
@@ -287,7 +215,7 @@ const DepositManagementScreen = () => {
               />
               <Button
                 title="إضافة العملية"
-                onPress={() => addTransaction(item.userId)}
+                onPress={() => addTransaction(deposit.userId)}
               />
             </View>
           )}
@@ -320,7 +248,7 @@ const DepositManagementScreen = () => {
         <FlatList
           data={deposits}
           renderItem={renderDeposit}
-          keyExtractor={(item) => item.userId}
+          keyExtractor={(item) => item.userId.toString()}
           ListEmptyComponent={<Text>No deposits found</Text>}
         />
       </ThemedView>

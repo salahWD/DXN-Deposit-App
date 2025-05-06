@@ -107,7 +107,7 @@ export const submitPointsOrder = async (userId: string | number, orderMemberId: 
   return true;
 };
 
-export const approveOrder = async (order: Order) => {
+export const approveOrder = async (order: Order, products: Product[]) => {
 
   const userDepositRef = doc(db, "deposits", order.userId);
   const orderRef = doc(db, "orders", order.id);
@@ -126,24 +126,21 @@ export const approveOrder = async (order: Order) => {
     await setDoc(userDepositRef, { products: [], deptAmount: 0 });
   }
 
-  console.log("Existing products:", currentProducts);
-
   // Prepare new products with default status
   const newProducts = order.products.map((p) => ({
     ...p,
     received: false,
-    points: 0,
+    points: false,
   }));
 
-  // Merge products: add count if same ID and default status exist
   const updatedProducts = [...currentProducts];
   newProducts.forEach((newProduct) => {
-    currentDept += newProduct.count * productPrice(newProduct.price ?? 0, DollarPrice);
+    currentDept += newProduct.count * productPrice(products.find(item => item.id == newProduct.id)?.price ?? 0, DollarPrice);
     const existingIndex = updatedProducts.findIndex(
       (p) =>
         p.id === newProduct.id &&
-        p.received === false &&
-        !p.points
+        p.received == false &&
+        p.points == false
     );
 
     if (existingIndex !== -1) {
@@ -293,7 +290,7 @@ export const homePageStats = async (userId: string, products: any[]) => {
       return value
     }, 0) * 100) / 100;
 
-    stats.depositAmount = depositInfo.deptAmount || stats.depositAmount;
+    stats.depositAmount = Math.ceil(depositInfo.deptAmount * 10) / 10 || stats.depositAmount;
 
     return stats;
   } else {

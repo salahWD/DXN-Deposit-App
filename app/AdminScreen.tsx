@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { View, Text, StyleSheet, ScrollView, Pressable } from "react-native";
 import { Order, OrderProducts } from "@/utils/types";
+import { useProducts } from "@/contexts/ProductContext";
 import Icon from "react-native-vector-icons/MaterialCommunityIcons";
 import {
   approveOrder,
@@ -11,9 +12,12 @@ import React from "react";
 
 const AdminPage = () => {
   const [orders, setOrders] = useState<Order[]>([]);
+  const { products } = useProducts();
 
   useEffect(() => {
     const unsubscribe = subscribeToOrders((val) => {
+      console.log("=======================");
+      console.log(val);
       setOrders(val);
     });
     return () => unsubscribe(); // Cleanup on unmount
@@ -24,10 +28,10 @@ const AdminPage = () => {
       style={styles.container}
       contentContainerStyle={{ paddingVertical: 14 }}
     >
-      {orders.length === 0 ? (
+      {orders?.length === 0 ? (
         <Text style={styles.dangerAlert}>لا يوجد طلبات</Text>
       ) : (
-        orders.map((order: Order, index) => (
+        orders?.map((order: Order, index) => (
           <View key={index} style={styles.orderBox}>
             <Text style={styles.orderTitle}>{order?.userId} </Text>
             <View
@@ -62,7 +66,7 @@ const AdminPage = () => {
                   </Pressable>
                 </View>
                 <View style={styles.button}>
-                  <Pressable onPress={() => approveOrder(order)}>
+                  <Pressable onPress={() => approveOrder(order, products)}>
                     <Text style={styles.buttonText}>
                       قبول الطلب
                       <Icon

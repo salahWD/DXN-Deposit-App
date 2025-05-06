@@ -28,10 +28,11 @@ export type Product = {
 };
 
 export type Deposit = {
+  deptAmount: number;
   id: string;
-  member_code: string;
   password: string,
   username: string,
+  userId?: string,
   isAdmin: boolean,
   products?: DepositProduct[],
   transactions?: Transaction[],
