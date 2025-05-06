@@ -1,29 +1,23 @@
 import { useState } from "react";
-import {
-  StyleSheet,
-  View,
-  ScrollView,
-  TouchableOpacity,
-  Pressable,
-  Text,
-  Modal,
-} from "react-native";
-import React from "react";
-
+import { StyleSheet, View, Pressable, Text, Modal } from "react-native";
+import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
 import ProductListing from "@/components/ProductListing";
-import HeaderBox from "@/components/HeaderBox";
 
 import Icon from "react-native-vector-icons/MaterialCommunityIcons";
 
 import { router } from "expo-router";
-import { depositAddProductsOrder } from "@/utils/functions";
+import { submitPointsOrder } from "@/utils/functions";
 import { Order, Product } from "@/utils/types";
+import React from "react";
+import OrderForm from "@/components/OrderForm";
 import useAdminCheck from "@/contexts/useAdminCheck";
+import HeaderBox from "@/components/HeaderBox";
 
-export default function OrderScreen() {
+export default function PostponedPointsScreen() {
   const [orderProducts, setOrderProducts] = useState<Order[]>([]); // Array of {id, title, count}
   const [resetKey, setResetKey] = useState(0);
+  const [isModalVisible, setIsModalVisible] = useState(false);
 
   const { userId } = useAdminCheck();
 
@@ -47,9 +41,9 @@ export default function OrderScreen() {
     console.log("order - handleChangedOrder - changed the OrderProducts state");
   };
 
-  const handleSubmitOrder = async () => {
+  const handleSubmitOrder = async (orderMemberId: string) => {
     if (userId) {
-      const res = await depositAddProductsOrder(userId, orderProducts);
+      const res = await submitPointsOrder(userId, orderMemberId, orderProducts);
       setOrderProducts([]);
       setResetKey((prev) => prev + 1);
       if (res) {
@@ -61,9 +55,17 @@ export default function OrderScreen() {
     }
   };
 
+  const handleOpenModal = () => {
+    setIsModalVisible(true);
+  };
+
+  const handleCloseModal = () => {
+    setIsModalVisible(false);
+  };
+
   return (
     <ThemedView style={styles.container}>
-      <HeaderBox title="طلب نقاط مؤجلة" />
+      <HeaderBox title="النقاط المؤجلة" />
 
       <ThemedView style={styles.container}>
         <ProductListing updateOrder={handleChangedOrder} resetKey={resetKey} />
@@ -71,7 +73,7 @@ export default function OrderScreen() {
 
       <ThemedView style={styles.buttonContainer}>
         <View>
-          <Pressable onPress={handleSubmitOrder}>
+          <Pressable onPress={handleOpenModal}>
             <View
               style={{
                 width: "100%",
@@ -87,10 +89,33 @@ export default function OrderScreen() {
             >
               <Icon name="cart-outline" style={{ fontSize: 25 }} />
               <Text style={{ fontSize: 18, fontWeight: "bold" }}>
-                إتمام الطلب
+                تنزيل نقاط مؤجلة
               </Text>
             </View>
           </Pressable>
+          <Modal
+            visible={isModalVisible}
+            transparent={true}
+            animationType="fade"
+            onRequestClose={handleCloseModal}
+            hardwareAccelerated={true}
+            presentationStyle="overFullScreen"
+            statusBarTranslucent={true}
+            supportedOrientations={["portrait", "landscape"]}
+            onDismiss={handleCloseModal}
+          >
+            <View style={styles.modalOverlay}>
+              <View style={styles.modalContent}>
+                <OrderForm
+                  onSubmit={(value) => {
+                    console.log("Form submitted with value:", value);
+                    handleSubmitOrder(value);
+                    handleCloseModal();
+                  }}
+                />
+              </View>
+            </View>
+          </Modal>
         </View>
       </ThemedView>
     </ThemedView>

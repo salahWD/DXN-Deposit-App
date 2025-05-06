@@ -69,12 +69,11 @@ const DepositManagementScreen = () => {
       (p) => p.id.toString() === selectedProductId
     );
     if (selectedProduct) {
-      const { paid, points, received } = selectedStatus?.details;
+      const { points, received } = selectedStatus?.details;
       await addProductToDeposit(
         userId,
         selectedProduct.title.ar,
         newProductCount,
-        paid,
         points,
         received
       );
@@ -89,7 +88,7 @@ const DepositManagementScreen = () => {
     product: DepositProduct,
     newCount: number
   ) => {
-    const currentProducts = deposits.find((d) => d.userId === userId)!.products;
+    const currentProducts = deposits.find((d) => d.id === userId)!.products;
     await editProductInDeposit(userId, product.id, newCount, currentProducts);
   };
 

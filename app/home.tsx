@@ -1,49 +1,88 @@
-import { StyleSheet, View, Pressable } from "react-native";
+import { ScrollView, StyleSheet, View, Pressable, Text } from "react-native";
 import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
 import { router } from "expo-router";
 import { useEffect, useState } from "react";
 
-import {
-  getUserSession,
-  getUserSessionStatus,
-  homePageStats,
-} from "@/utils/functions";
-import { useProducts } from "@/contexts/ProductContext"; // Adjust the path as needed
+import { getUserSession, homePageStats } from "@/utils/functions";
+import { useProducts } from "@/contexts/ProductContext";
 import React from "react";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import useAdminCheck from "@/contexts/useAdminCheck";
 
 export default function HomeScreen() {
   const [depositProductsCount, setDepositProductsCount] = useState(0);
-  const [currentBalance, setCurrentBalance] = useState(0);
-  const [admin, setAdmin] = useState(false);
+  const [depositPoints, setDepositPoints] = useState(0);
+  const [depositAmount, setDepositAmount] = useState(0);
 
   const squareData = [
-    { title: "طلب جديد", color: "#4CAF50", value: "+", adminOnly: false }, // Green
     {
-      title: "صندوق الودائع",
-      color: "#2196F3",
-      value: "45 منتج",
+      id: 0,
+      title: "النقاط المؤجلة",
+      color: "#9C27B0",
+      value: depositPoints,
       adminOnly: false,
-    }, // Blue
+    },
     {
-      title: "عدد المنتجات المودوعة",
+      id: 1,
+      title: "المنتجات الباقية",
       color: "#FF9800",
       value: depositProductsCount,
       adminOnly: false,
-    }, // Orange
+    },
     {
-      title: "الرصيد الحالي",
-      color: "#9C27B0",
-      value: currentBalance + " TL",
+      id: 2,
+      title: "المبلغ المطلوب",
+      color: "#2196F3",
+      value: depositAmount + "TL",
       adminOnly: false,
-    }, // Purple
+    },
     {
+      id: 3,
+      title: "طلب جديد",
+      color: "#4CAF50",
+      value: "+",
+      adminOnly: false,
+    },
+    {
+      id: 4,
+      title: "سداد مبلغ",
+      color: "#2196F3",
+      value: (
+        <Text
+          style={{
+            fontSize: 24,
+            lineHeight: 24,
+          }}
+        >
+          $
+        </Text>
+      ),
+      adminOnly: false,
+    },
+    {
+      id: 5,
       adminOnly: true,
       title: "مراجعة الطلبات",
-      color: "red",
+      color: "darkblue",
       value: "خاص بالإدارة",
     },
     {
+      id: 6,
+      adminOnly: true,
+      title: "مراجعة تنزيل النقاط",
+      color: "orange",
+      value: "خاص بالإدارة",
+    },
+    {
+      id: 7,
+      adminOnly: true,
+      title: "التقارير",
+      color: "darkgreen",
+      value: "خاص بالإدارة",
+    },
+    {
+      id: 8,
       adminOnly: true,
       title: "إدارة الودائع",
       color: "green",
@@ -51,99 +90,119 @@ export default function HomeScreen() {
     },
   ];
 
-  const { products, dollarPrice } = useProducts();
+  const { products } = useProducts();
+
+  const { isAdmin, isLoading } = useAdminCheck();
 
   useEffect(() => {
     const getStats = async () => {
-      const status = await getUserSessionStatus();
-      setAdmin(status);
       const Id = await getUserSession();
 
       if (Id) {
-        const stats = await homePageStats(Id, dollarPrice, products);
+        const stats = await homePageStats(Id, products);
         if (stats) {
           setDepositProductsCount(stats.depositProductsCount);
-          setCurrentBalance(stats.balance);
+          setDepositPoints(stats.postponedPoints);
+          setDepositAmount(stats.depositAmount);
         }
       } else {
         console.log("there is no user id");
       }
     };
     getStats();
-  }, []);
+  }, [isLoading]);
 
   const handleSquarePress = (route: number) => {
-    console.log(route);
+    console.log(route, "route");
     if (route == 0) {
-      router.replace("/order");
+      router.replace("/postponedPoints");
     } else if (route == 1) {
       router.replace("/deposit");
-      // } else if (route == 2) {
-      // router.replace('/login');
-      // } else {
-      // router.replace('/login');
+    } else if (route == 2) {
+      router.replace("/deptAmount");
+    } else if (route == 3) {
+      router.replace("/order");
     } else if (route == 4) {
-      router.replace("/admin");
+      router.replace("/makeTransaction");
     } else if (route == 5) {
+      router.replace("/admin");
+    } else if (route == 6) {
+      router.replace("/PointsOrders");
+    } else if (route == 7) {
+      router.replace("/reports");
+    } else if (route == 8) {
       router.replace("/depositManagement");
     }
   };
 
-  return (
-    <ThemedView style={styles.container}>
-      <ThemedView style={styles.content}>
-        <ThemedView style={styles.titleContainer}>
-          <ThemedText type="title" style={{ flex: 1, textAlign: "center" }}>
-            أهلا وسهلا
-          </ThemedText>
-        </ThemedView>
+  const logout = async () => {
+    await AsyncStorage.removeItem("userId");
+    await AsyncStorage.removeItem("isAdmin");
+    router.replace("/");
+  };
 
-        <View
-          style={{
-            display: "flex",
-            flexDirection: "row",
-            flexWrap: "wrap",
-            gap: 15,
-          }}
+  return (
+    <ThemedView style={styles.content}>
+      <ThemedView style={styles.titleContainer}>
+        <ThemedText
+          type="title"
+          style={{ fontSize: 24, flex: 1, textAlign: "center" }}
         >
-          {squareData.map((item, index) => {
-            if (item.adminOnly && !admin) return null;
-            return (
-              <View
-                key={index}
-                style={[styles.square, { backgroundColor: item.color }]}
-              >
-                <Pressable onPress={() => handleSquarePress(index)}>
-                  <View style={{ alignItems: "center" }}>
-                    <ThemedText style={styles.squareText}>
-                      {item.title}
-                    </ThemedText>
-                    <ThemedText
-                      type="subtitle"
-                      style={{ color: "white", opacity: 0.75, marginTop: 10 }}
-                    >
-                      {item.value}
-                    </ThemedText>
-                  </View>
-                </Pressable>
-              </View>
-            );
-          })}
-        </View>
+          أهلا وسهلا ({"اسم المستخدم"})
+        </ThemedText>
       </ThemedView>
+
+      <View
+        style={{
+          display: "flex",
+          flexDirection: "row",
+          flexWrap: "wrap",
+          gap: 6,
+        }}
+      >
+        {squareData.map((item, index) => {
+          if (item.adminOnly && !isAdmin) return null;
+          return (
+            <View
+              key={index}
+              style={[styles.square, { backgroundColor: item.color }]}
+            >
+              <Pressable onPress={() => handleSquarePress(item.id)}>
+                <View style={{ alignItems: "center" }}>
+                  <ThemedText style={styles.squareText}>
+                    {item.title}
+                  </ThemedText>
+                  <ThemedText type="subtitle" style={styles.squareValue}>
+                    {item.value}
+                  </ThemedText>
+                </View>
+              </Pressable>
+            </View>
+          );
+        })}
+      </View>
+      <View
+        style={[
+          styles.square,
+          { width: "100%", minHeight: 60, backgroundColor: "red" },
+        ]}
+      >
+        <Pressable onPress={() => logout()}>
+          <View style={{ alignItems: "center" }}>
+            <ThemedText style={styles.squareText}>تسجيل الخروج</ThemedText>
+          </View>
+        </Pressable>
+      </View>
     </ThemedView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
   content: {
-    flex: 1,
+    minHeight: "100%",
     padding: 32,
+    paddingHorizontal: 28,
     gap: 16,
-    overflow: "hidden",
   },
   titleContainer: {
     flexDirection: "row",
@@ -151,30 +210,15 @@ const styles = StyleSheet.create({
     gap: 8,
     marginBottom: 20,
   },
-  stepContainer: {
-    gap: 8,
-    marginBottom: 8,
-  },
-  reactLogo: {
-    height: 178,
-    width: 290,
-    bottom: 0,
-    left: 0,
-    position: "absolute",
-  },
-  squaresContainer: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    justifyContent: "space-between",
-    gap: 16,
-  },
   square: {
-    width: "47%",
-    height: 120,
+    width: "32%",
+    minHeight: 110,
     justifyContent: "center",
     alignItems: "center",
     borderRadius: 10,
     marginBottom: 10,
+    paddingVertical: 12,
+    padding: 8,
   },
   squareText: {
     color: "white",
@@ -182,4 +226,5 @@ const styles = StyleSheet.create({
     textAlign: "center",
     fontWeight: "bold",
   },
+  squareValue: { color: "white", opacity: 0.75, marginTop: 10, fontSize: 14 },
 });

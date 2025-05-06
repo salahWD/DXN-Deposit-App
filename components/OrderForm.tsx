@@ -44,9 +44,9 @@ export default function OrderForm({ onSubmit }: OrderFormProps) {
           keyboardType="numeric"
           value={memberId}
           onChangeText={setMemberId}
-          placeholder="Enter Member ID"
+          placeholder="رقم العضوية"
         />
-        <Button title="Submit" onPress={handleSubmit} />
+        <Button title="تنزيل النقاط" onPress={handleSubmit} />
       </View>
     </KeyboardAvoidingView>
   );

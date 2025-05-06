@@ -3,22 +3,26 @@ import { doc, onSnapshot, Unsubscribe } from "firebase/firestore";
 import { db } from "@/firebaseConfig";
 import { getUserSession } from "@/utils/functions";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useRouter } from "expo-router"; // Use expo-router for navigation
 
 const ADMIN_STATUS_CACHE_KEY = "admin_status";
 
 const useAdminCheck = () => {
   const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
+  const [userId, setUserId] = useState<string>("");
+  const router = useRouter();
 
   useEffect(() => {
     let unsubscribe: Unsubscribe | undefined;
 
     const checkAdminStatus = async () => {
-      const userId = await getUserSession();
-      console.log("User ID:", userId);
+      const ID = await getUserSession();
+      setUserId(ID ?? "");
 
-      if (!userId) {
+      if (!ID) {
         console.log("No user ID, please login");
         setIsAdmin(false);
+        router.replace("/index");
         return;
       }
 
@@ -36,6 +40,7 @@ const useAdminCheck = () => {
           const data = snapshot.data();
           const adminStatus = data?.isAdmin === true;
           setIsAdmin(adminStatus);
+          AsyncStorage.setItem("userId", userId);
           AsyncStorage.setItem(
             `${ADMIN_STATUS_CACHE_KEY}_${userId}`,
             adminStatus.toString()
@@ -57,10 +62,10 @@ const useAdminCheck = () => {
     return () => {
       if (unsubscribe) unsubscribe();
     };
-  }, []);
+  }, [isAdmin, userId]);
 
   // Return the admin status and a loading state
-  return { isAdmin, isLoading: isAdmin === null };
+  return { isAdmin, isLoading: typeof isAdmin == null, userId: userId };
 };
 
 export default useAdminCheck;

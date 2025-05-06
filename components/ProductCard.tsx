@@ -14,6 +14,7 @@ interface ProductCardProps extends Pick<Product, "price"> {
   depositCount?: number;
   product: Product;
   handleChangedCount: (product: Product, count: number) => void;
+  displayOnly: Boolean;
 }
 
 const ProductCard = ({
@@ -22,6 +23,7 @@ const ProductCard = ({
   depositCount = 0,
   price = 0,
   product,
+  displayOnly = false,
 }: ProductCardProps) => {
   const {
     title: { ar: title },
@@ -31,9 +33,11 @@ const ProductCard = ({
   const isFirstRender = useRef(true);
 
   // Reset count when selectedCount changes (e.g., after submission)
-  useEffect(() => {
-    setCount(selectedCount);
-  }, [selectedCount]);
+  if (!displayOnly) {
+    useEffect(() => {
+      setCount(selectedCount);
+    }, [selectedCount]);
+  }
 
   useEffect(() => {
     if (isFirstRender.current) {
@@ -42,7 +46,9 @@ const ProductCard = ({
     }
 
     console.log("productCard - handleChangedCount - product count changed");
-    handleChangedCount(product, count);
+    if (!displayOnly) {
+      handleChangedCount(product, count);
+    }
   }, [count]);
 
   return (
@@ -72,7 +78,7 @@ const ProductCard = ({
               color: "#333",
             }}
           >
-            في الصندوق
+            نقاط مؤجلة
           </ThemedText>
           <ThemedText
             type="default"
@@ -84,46 +90,48 @@ const ProductCard = ({
           </ThemedText>
         </View>
       </View>
-      <View style={{ ...styles.blockContainer, width: 45 }}>
-        <View style={styles.block}>
-          <ThemedText type="default" style={{ fontSize: 10, lineHeight: 12 }}>
-            المطلوب
-          </ThemedText>
+      {!displayOnly && (
+        <View style={{ ...styles.blockContainer, width: 45 }}>
+          <View style={styles.block}>
+            <ThemedText type="default" style={{ fontSize: 10, lineHeight: 12 }}>
+              المطلوب
+            </ThemedText>
+          </View>
+          <SelectDropdown
+            statusBarTranslucent={true}
+            defaultValue={count}
+            data={productCountList}
+            onSelect={setCount}
+            renderButton={(selectedItem, isOpened) => {
+              return (
+                <View style={styles.dropdownButtonStyle}>
+                  <Text style={styles.dropdownButtonTxtStyle}>
+                    {(selectedItem > 0 && selectedItem) || " "}
+                  </Text>
+                  <Icon
+                    name={isOpened ? "chevron-up" : "chevron-down"}
+                    style={styles.dropdownButtonArrowStyle}
+                  />
+                </View>
+              );
+            }}
+            renderItem={(item, index, isSelected) => {
+              return (
+                <View
+                  style={{
+                    ...styles.dropdownItemStyle,
+                    ...(isSelected && { backgroundColor: "#E9ECEF" }),
+                  }}
+                >
+                  <Text style={styles.dropdownItemTxtStyle}>{item}</Text>
+                </View>
+              );
+            }}
+            showsVerticalScrollIndicator={false}
+            dropdownStyle={styles.dropdownMenuStyle}
+          />
         </View>
-        <SelectDropdown
-          statusBarTranslucent={true}
-          defaultValue={count}
-          data={productCountList}
-          onSelect={setCount}
-          renderButton={(selectedItem, isOpened) => {
-            return (
-              <View style={styles.dropdownButtonStyle}>
-                <Text style={styles.dropdownButtonTxtStyle}>
-                  {(selectedItem > 0 && selectedItem) || " "}
-                </Text>
-                <Icon
-                  name={isOpened ? "chevron-up" : "chevron-down"}
-                  style={styles.dropdownButtonArrowStyle}
-                />
-              </View>
-            );
-          }}
-          renderItem={(item, index, isSelected) => {
-            return (
-              <View
-                style={{
-                  ...styles.dropdownItemStyle,
-                  ...(isSelected && { backgroundColor: "#E9ECEF" }),
-                }}
-              >
-                <Text style={styles.dropdownItemTxtStyle}>{item}</Text>
-              </View>
-            );
-          }}
-          showsVerticalScrollIndicator={false}
-          dropdownStyle={styles.dropdownMenuStyle}
-        />
-      </View>
+      )}
 
       <View style={styles.details}>
         <ThemedText style={styles.title}>{title}</ThemedText>

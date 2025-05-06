@@ -1,5 +1,4 @@
 import {
-  getFirestore,
   getDoc,
   doc,
   onSnapshot,
@@ -11,6 +10,7 @@ import {
   setDoc,
   Unsubscribe,
   arrayUnion,
+  query, where
 } from "firebase/firestore";
 import { db } from "@/firebaseConfig";
 
@@ -18,7 +18,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Product, Order, Deposit, Transaction, DepositProduct } from '@/utils/types';
 
 export const getUserSession = async () => {
-  return await AsyncStorage.getItem('member_code');
+  return await AsyncStorage.getItem('userId');
 }
 
 export const getUserSessionStatus = async () => {
@@ -66,42 +66,64 @@ export const getProductsFromDB = async () => {
   }
 };
 
-export const productPrice = (dollar:number, initPrice:number): number => {
+export const productPrice = (dollar: number, initPrice: number): number => {
+  if (isNaN(dollar) || isNaN(initPrice)) {
+    return 0; // Default to 0 if inputs are invalid
+  }
   return Math.ceil(initPrice * dollar * 100) / 100;
 };
 
 
-export const submitOrder = async (userId: string | number, orderMemberId: string | number, orderProducts: Order[]) => {
+export const depositAddProductsOrder = async (userId: string | number, orderProducts: Order[]) => {
 
   if (orderProducts.length === 0) {
-    alert('ام يتم اختيار اي منتجات!');
-    return;
+    alert('لم يتم اختيار اي منتجات!');
+    return false;
   }
 
   await addDoc(collection(db, 'orders'), {
     userId,
-    orderMemberId,
     products: orderProducts,
-    status: 'pending',
     timestamp: new Date().toISOString(),
   });
   alert('تم الطلب!');
+  return true;
+};
+
+export const submitPointsOrder = async (userId: string | number, orderMemberId: string | number, orderProducts: Order[]) => {
+
+  if (orderProducts.length === 0) {
+    alert('لم يتم اختيار اي منتجات!');
+    return false;
+  }
+
+  await addDoc(collection(db, 'pointOrders'), {
+    userId,
+    orderMemberId,
+    products: orderProducts,
+    timestamp: new Date().toISOString(),
+  });
+  alert('تم الطلب!');
+  return true;
 };
 
 export const approveOrder = async (order: Order) => {
-  console.log("order is approved", order);
 
   const userDepositRef = doc(db, "deposits", order.userId);
   const orderRef = doc(db, "orders", order.id);
+  const DollarPrice = await getDollarPrice();
 
   // Fetch current products in deposit
   const depositSnap = await getDoc(userDepositRef);
   let currentProducts: DepositProduct[] = [];
+  let currentDept: number = 0;
   if (depositSnap.exists()) {
+    console.log("Deposit document exists, fetching products...");
     currentProducts = depositSnap.data().products || [];
+    currentDept = depositSnap.data().deptAmount || 0;
   } else {
     console.log("Deposit document does not exist, creating a new one...");
-    await setDoc(userDepositRef, { products: [] });
+    await setDoc(userDepositRef, { products: [], deptAmount: 0 });
   }
 
   console.log("Existing products:", currentProducts);
@@ -109,33 +131,31 @@ export const approveOrder = async (order: Order) => {
   // Prepare new products with default status
   const newProducts = order.products.map((p) => ({
     ...p,
-    paid: false,
     received: false,
-    points: false,
+    points: 0,
   }));
 
   // Merge products: add count if same ID and default status exist
   const updatedProducts = [...currentProducts];
   newProducts.forEach((newProduct) => {
+    currentDept += newProduct.count * productPrice(newProduct.price ?? 0, DollarPrice);
     const existingIndex = updatedProducts.findIndex(
       (p) =>
         p.id === newProduct.id &&
-        p.paid === false &&
         p.received === false &&
-        p.points === false
+        !p.points
     );
 
     if (existingIndex !== -1) {
-      // Product exists with default status, increment count
       updatedProducts[existingIndex].count += newProduct.count;
     } else {
-      // No match, append as new product
       updatedProducts.push(newProduct);
     }
   });
 
   // Update Firestore
-  await updateDoc(userDepositRef, { products: updatedProducts });
+  console.log("Updated products:", updatedProducts);
+  await updateDoc(userDepositRef, { products: updatedProducts, deptAmount: currentDept });
 
   // Remove order
   await deleteDoc(orderRef);
@@ -143,22 +163,137 @@ export const approveOrder = async (order: Order) => {
   alert("تم قبول الطلب!");
 };
 
-export const homePageStats = async (userId: string, dollarPrice=0, products) => {
-  
+export const approvePointsOrder = async (order: Order, products: Product[]) => {
+
+  const userDepositRef = doc(db, "deposits", order.userId);
+  const orderRef = doc(db, "pointOrders", order.id);
+  const dollarPrice = await getDollarPrice();
+
+  // Fetch current products in deposit
+  const depositSnap = await getDoc(userDepositRef);
+  let currentProducts: DepositProduct[] = [];
+  if (depositSnap.exists()) {
+    console.log("Deposit document exists, fetching products...");
+    currentProducts = depositSnap.data().products || [];
+  } else {
+    console.log("Deposit document does not exist, creating a new one...");
+    await setDoc(userDepositRef, { products: [] });
+  }
+
+  let newDeptAmount = depositSnap.data()?.deptAmount || 0;
+  let updatedProducts = [...currentProducts];
+
+  order.products.forEach((orderProduct) => {
+    const existingIndex = updatedProducts.findIndex(
+      (p) =>
+        p.id === orderProduct.id &&
+        p.received === true &&
+        !p.points
+    );
+
+    if (existingIndex !== -1) {
+      if (updatedProducts[existingIndex].count > orderProduct.count) {
+        updatedProducts[existingIndex].count -= orderProduct.count;
+      }else {
+        // this count of products will be considered as 0 points and already received and it's price is added to the dept
+        const notInDepositProductsCount = -1 * (updatedProducts[existingIndex].count - orderProduct.count);
+        // updatedProducts[existingIndex].count = 0;// set the count to 0
+        // or
+        // remove the product from deposit products
+        updatedProducts = updatedProducts.filter((_, index) => index !== existingIndex);
+        const unpointedProductType = updatedProducts.findIndex(
+          (p) =>
+            p.id === orderProduct.id &&
+            p.received === false &&
+            p.points
+        );
+        if (unpointedProductType !== -1) {
+          updatedProducts[unpointedProductType].count += notInDepositProductsCount;
+        }else {
+          if (notInDepositProductsCount > 0) {
+            updatedProducts.push({
+              id: orderProduct.id,
+              points: true,
+              received: false,
+              title: orderProduct.title,
+              count: notInDepositProductsCount,
+            });
+          }
+        }
+        newDeptAmount += notInDepositProductsCount * productPrice(products.find(item => item.id == orderProduct.id)?.price ?? 0, dollarPrice);
+        
+      // if the order count is more then what user has in deposit:
+      //    - set ordered product type count in deposit to 0
+      //    - remove the total (points) of (available ordered products) in (deposit) from the deposit points
+      //    - add the remaining order count to deposit products
+      //    (and mark it as unpointed because the points has already been assigned to a member)
+      //    - add transaction with a negative amount
+      //      and a title of "طلب منتجات غير متوفرة في المنتجات المؤجلة"
+      //     =====================
+      //      for example: user has 5 spiro and ordered 10 spiro => will set spiro count to 0 in deposit
+      //        and remove 5 * points of spiro from the deposit points
+      //        and add 5 * price of spiro to the dept amount
+      //        and add 5 * price of spiro to the dept amount
+      // and add the remaining order count price to the deposit amount without adding remaning points
+      }
+    } else {
+      // newDeptAmount += productPrice(products.find(item => item.id == orderProduct.id)?.price, orderProduct.count);
+      newDeptAmount += orderProduct.count * productPrice(products.find(item => item.id == orderProduct.id)?.price ?? 0, dollarPrice);
+      updatedProducts.push({
+        id: orderProduct.id,
+        points: true,
+        received: false,
+        title: orderProduct.title,
+        count: orderProduct.count,
+      });
+    }
+  });
+
+  // let newDeptAmount = order.products.reduce((total, product) => {
+  //   return total + (product.count * productPrice(product.price ?? 0, dollarPrice));
+  // }, depositSnap.data()?.deptAmount || 0);
+
+  // Update Firestore
+  console.log("Updated products:", updatedProducts);
+  await updateDoc(userDepositRef, { products: updatedProducts, deptAmount: newDeptAmount });
+
+  // Remove order
+  await deleteDoc(orderRef);
+
+  alert("تم قبول الطلب!");
+};
+
+export const homePageStats = async (userId: string, products: any[]) => {
+
   const depositSnap = await getDoc(doc(db, "deposits", userId));
+  // const allProducts = await getProductsFromDB();
   
   let stats = {
     depositProductsCount: 0,
-    balance: 0,
+    postponedPoints: 0,
+    depositAmount: 0,
   };
 
   if (depositSnap.exists()) {
-    const depositProducts: Product[] = depositSnap.data().products;
+    const depositInfo = depositSnap.data();
+    const depositProducts: DepositProduct[] = depositInfo.products;
 
-    stats.depositProductsCount = depositProducts.reduce((value: number, p: Product) => (value += p.count), 0);
-    stats.balance = Math.ceil(depositProducts.reduce((value: number, prod: Product) => {
-      return value += productPrice(dollarPrice, products.find(item => item.id == prod.id).price);
+    stats.depositProductsCount = depositProducts.reduce((value: number, p: DepositProduct) => {
+      if (!p.received) {
+        return value += p.count;
+      }else {
+        return value;
+      }
+    }, 0);
+
+    stats.postponedPoints = Math.ceil(depositProducts.reduce((value: number, prod: DepositProduct) => {
+      if (prod.received && !prod.points) {
+        value += products.find((item, indx) => item.id == prod.id)?.points * prod.count || 0;
+      }
+      return value
     }, 0) * 100) / 100;
+
+    stats.depositAmount = depositInfo.deptAmount || stats.depositAmount;
 
     return stats;
   } else {
@@ -195,8 +330,44 @@ export const subscribeToOrders = (callback: (orders: Order[]) => void) => {
   });
 };
 
+export const subscribeToPointsOrders = (callback: (orders: any) => void) => {
+  return onSnapshot(collection(db, "pointOrders"), async (snapshot) => {
+    const ordersArray = await Promise.all(
+      snapshot.docs.map(async (docSnapshot) => {
+        const orderData = docSnapshot.data();
+        const userId = orderData.userId;
+        let username = "";
+
+        try {
+          const userDocRef = doc(db, "deposits", String(userId));
+          const userDoc = await getDoc(userDocRef);
+          if (userDoc.exists()) {
+            username = userDoc.data()?.username || "";
+          }
+        } catch (error) {
+          console.error(`Error fetching username for userId ${userId}:`, error);
+        }
+
+        return {
+          id: docSnapshot.id,
+          ...orderData,
+          username,
+        };
+      })
+    );
+    callback(ordersArray);
+  });
+};
+
 export const rejectOrder = async (orderId: Order["id"]) => {
   const orderRef = doc(db, "orders", orderId);
+  await deleteDoc(orderRef);
+  alert("Order rejected!");
+};
+
+export const rejectPointsOrder = async (orderId: Order["id"]) => {
+  console.log(orderId);
+  const orderRef = doc(db, "pointOrders", orderId);
   await deleteDoc(orderRef);
   alert("Order rejected!");
 };
@@ -294,4 +465,185 @@ export const calculateBalance = (transactions: Transaction[]): number => {
   return transactions.reduce((sum, txn) => sum + txn.amount, 0);
 };
 
-/* ================ ADMIN DEPOSIT END ================ */
+export async function getDepositProducts(userId: string): Promise<DepositProduct[]> {
+  
+  if (!userId) {
+    throw new Error("User not logged in.");
+  }
+
+  const depositRef = doc(db, "deposits", userId);
+  const snapshot = await getDoc(depositRef);
+
+  if (snapshot.exists()) {
+    const data = snapshot.data();
+    if (data && data.products) {
+      return data.products as DepositProduct[];
+    } else {
+      return [];
+    }
+  } else {
+    return [];
+  }
+}
+
+export async function fetchUserDepositAndOrders(
+  userId: string,
+  onProductsChange: (products: DepositProduct[]) => void,
+  onError: (error: string) => void,
+  onLoadingChange: (loading: boolean) => void
+): Promise<void> {
+  
+  try {
+    onLoadingChange(true);
+  
+    // ✅ Fix: Get document directly
+    const depositDocRef = doc(db, "deposits", userId);
+    const depositDocSnap = await getDoc(depositDocRef);
+  
+    let userProducts: DepositProduct[] = [];
+  
+    if (depositDocSnap.exists()) {
+      const depositData = depositDocSnap.data();
+      if (depositData.products && Array.isArray(depositData.products)) {
+        userProducts = depositData.products;
+      } else {
+      }
+    } else {
+    }
+  
+    // Orders logic stays the same
+    const ordersCollectionRef = collection(db, "orders");
+    const q = query(ordersCollectionRef, where("userId", "==", userId));
+    const ordersSnapshot = await getDocs(q);
+  
+  
+    let orderProducts: DepositProduct[] = [];
+  
+    for (const orderDoc of ordersSnapshot.docs) {
+      const orderData = orderDoc.data();
+      if (orderData.products && Array.isArray(orderData.products)) {
+        orderProducts = orderProducts.concat(orderData.products);
+      }
+    }
+  
+    const combinedProducts = [...userProducts, ...orderProducts];
+  
+    if (combinedProducts.length > 0) {
+      onProductsChange(combinedProducts);
+      onError(null);
+    } else {
+      onProductsChange([]);
+      onError("لا توجد منتجات في وديعتك حاليًا");
+    }
+  } catch (error) {
+    console.error("Error fetching deposit or orders:", error);
+    onError("غير متصل بالإنترنت أو حدث خطأ. حاول لاحقًا.");
+    onProductsChange([]);
+  } finally {
+    onLoadingChange(false);
+  }
+}
+
+export async function markProductsAsReceived(
+  userId: string,
+  updatedProducts: DepositProduct[]
+): Promise<void> {
+  const userDepositRef = doc(db, "deposits", userId);
+
+  try {
+    await updateDoc(userDepositRef, {
+      products: updatedProducts,
+    });
+    console.log("Products updated successfully in Firestore.");
+  } catch (error) {
+    console.error("Error updating Firestore products:", error);
+    throw error;
+  }
+}
+
+export async function fetchUserAccountStatement(
+  userId: string,
+  onTransactionsChange: (transaction: Transaction[]) => void,
+  onError: (error: string) => void,
+  onLoadingChange: (loading: boolean) => void
+): Promise<void> {
+  
+  try {
+    onLoadingChange(true);
+  
+    // ✅ Fix: Get document directly
+    const depositDocRef = doc(db, "deposits", userId);
+    const depositDocSnap = await getDoc(depositDocRef);
+  
+    if (depositDocSnap.exists()) {
+
+      const depositData = depositDocSnap.data();
+      if (depositData.transactions && Array.isArray(depositData.transactions)) {
+        onTransactionsChange(depositData.transactions);
+        onError(null);
+      }
+    }else {
+      console.log("no transactions found");
+      onTransactionsChange([]);
+      onError("لا توجد معاملات سابقة لك في النظام");
+    }
+
+  } catch (error) {
+    console.error("Error fetching deposit or orders:", error);
+    onError("غير متصل بالإنترنت أو حدث خطأ. حاول لاحقًا.");
+    onTransactionsChange([]);
+  } finally {
+    onLoadingChange(false);
+  }
+}
+
+export async function submitTransaction(userId: string, amount: number, note?: string) {
+  // if (orderProducts.length === 0) {
+  //   alert('لم يتم اختيار اي منتجات!');
+  //   return false;
+  // }
+
+  await addDoc(collection(db, 'pointOrders'), {
+    userId,
+    amount: amount,
+    note: note || "",
+    created_at: new Date().toISOString(),
+  });
+  alert('تم تقديم طلب السداد!');
+  return true;
+}
+
+export async function getDepositProductsFromDB(
+    userID: string
+  ): Promise<Product[]> {
+    console.log("getting deposit products from DB");
+    try {
+      let depositProducts: Product[] = [];
+      const querySnapshot = await getDocs(
+        collection(db, `deposits/${userID}/products`)
+      );
+
+      querySnapshot.forEach((doc) => {
+        const data = doc.data() as DepositProduct;
+        depositProducts.push({
+          id: parseInt(doc.id),
+          tag: undefined,
+          count: data.count,
+          special: undefined,
+          price: undefined,
+          received: data.received,
+          points: data.points,
+          title: {
+            ar: data.title,
+            tr: data.title, // Assuming same title for both languages; adjust if needed
+          },
+        });
+      });
+
+      // Sort deposit products by their numeric ID
+      return depositProducts.sort((a, b) => a.id - b.id);
+    } catch (error) {
+      console.error("Error fetching deposit products: ", error);
+      return [];
+    }
+  };

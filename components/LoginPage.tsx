@@ -1,57 +1,97 @@
-import { KeyboardAvoidingView, ScrollView, StyleSheet, View, Text, TextInput, Button, Pressable, } from 'react-native';
+import {
+  KeyboardAvoidingView,
+  ScrollView,
+  StyleSheet,
+  View,
+  Text,
+  TextInput,
+  Button,
+  Pressable,
+} from "react-native";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect } from "react";
 
-console.log("index - page")
+console.log("index - page");
 
 interface LoginPageProps {
   login: () => Promise<void>;
   register: () => Promise<void>;
-  updateMemberCode: React.Dispatch<React.SetStateAction<string>>;
+  updateUsername: React.Dispatch<React.SetStateAction<string>>;
   updatePassword: React.Dispatch<React.SetStateAction<string>>;
 }
 
-export default function LoginPage({ login, register, updateMemberCode, updatePassword }: LoginPageProps) {
-  
+export default function LoginPage({
+  login,
+  register,
+  updateUsername,
+  updatePassword,
+}: LoginPageProps) {
   const [isRegister, setIsRegister] = useState(false);
-  
+
   return (
-    <ScrollView contentContainerStyle={{ alignItems: "center", justifyContent: "center", paddingVertical: 35, minHeight: "100%", width: "100%" }}>
-      <KeyboardAvoidingView style={{ alignItems: "center", justifyContent: "center", width: "100%", flex: 1 }}>
-        <Text style={{ fontSize: 35 }}>{isRegister ?  'إنشاء حساب': 'تسجيل الدخول' }</Text>
+    <ScrollView
+      contentContainerStyle={{
+        alignItems: "center",
+        justifyContent: "center",
+        paddingVertical: 35,
+        minHeight: "100%",
+        width: "100%",
+      }}
+    >
+      <KeyboardAvoidingView
+        style={{
+          alignItems: "center",
+          justifyContent: "center",
+          width: "100%",
+          flex: 1,
+        }}
+      >
+        <Text style={{ fontSize: 35 }}>
+          {isRegister ? "إنشاء حساب" : "تسجيل الدخول"}
+        </Text>
         <View style={styles.form}>
           <View style={styles.formRow}>
-            <Text style={styles.label}>رقم العضوية</Text>
+            <Text style={styles.label}>إسم المستخدم</Text>
             <TextInput
-              keyboardType='numeric'
               style={styles.input}
-              onChangeText={updateMemberCode}
-              placeholder="رقم عضوية دي اكس ان"
+              onChangeText={updateUsername}
+              placeholder="أدخل إسم المستخدم"
+              textContentType="username"
+              autoCapitalize="none"
+              autoCorrect={false}
+              autoComplete="username"
             />
           </View>
           <View style={styles.formRow}>
             <Text style={styles.label}>كلمة المرور</Text>
             <TextInput
               style={styles.input}
+              textContentType="password"
+              secureTextEntry={true}
               onChangeText={updatePassword}
               placeholder="كلمة المرور"
             />
           </View>
-          <View style={{ marginBottom: 8, }}>
-            <Button title={isRegister ?  'إنشاء حساب': 'تسجيل الدخول' } onPress={() => {
-              if (isRegister) {
-                register()
-              }else {
-                login()
-              }
-            }} />
+          <View style={{ marginBottom: 8 }}>
+            <Button
+              title={isRegister ? "إنشاء حساب" : "تسجيل الدخول"}
+              onPress={() => {
+                if (isRegister) {
+                  register();
+                } else {
+                  login();
+                }
+              }}
+            />
           </View>
-          <View style={{ marginBottom: 8, }}>
-            <Pressable onPress={() => {
-              setIsRegister(!isRegister)
-            }}>
-              <Text style={{ textAlign: "center",  }}>
-                {!isRegister ?  'إنشاء حساب': 'تسجيل الدخول' }
+          <View style={{ marginBottom: 8 }}>
+            <Pressable
+              onPress={() => {
+                setIsRegister(!isRegister);
+              }}
+            >
+              <Text style={{ textAlign: "center" }}>
+                {!isRegister ? "إنشاء حساب" : "تسجيل الدخول"}
               </Text>
             </Pressable>
           </View>
@@ -67,12 +107,12 @@ const styles = StyleSheet.create({
     gap: 8,
     marginTop: 24,
     paddingHorizontal: 45,
-  }, 
+  },
   formRow: {
     marginBottom: 12,
     borderBottomColor: "#999",
     borderBottomWidth: 1,
-  }, 
+  },
   label: {
     fontSize: 18,
     color: "#666",

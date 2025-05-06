@@ -1,23 +1,15 @@
 import { Text } from "react-native";
-import { router } from "expo-router"; // Use expo-router for navigation
 
 import DepositManagementScreen from "@/app/DepositManagementScreen";
 import useAdminCheck from "@/contexts/useAdminCheck";
+import React from "react";
 
-const ProtectedDepositManagementScreen = () => {
-  const { isAdmin, isLoading } = useAdminCheck();
+export default function ProtectedDepositManagementScreen() {
+  const { isLoading } = useAdminCheck();
 
-  if (isLoading) return <Text>Loading...</Text>;
-  if (!isAdmin) {
-    router.replace("/home");
-    return null;
+  if (isLoading) {
+    return <Text>Loading...</Text>;
   }
 
-  if (isAdmin === null) return <Text>Loading...</Text>;
-  if (!isAdmin) {
-    router.replace("/home");
-    return null;
-  }
   return <DepositManagementScreen />;
-};
-export default ProtectedDepositManagementScreen;
+}

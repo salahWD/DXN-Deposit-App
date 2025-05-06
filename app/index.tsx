@@ -11,38 +11,26 @@ import { router } from "expo-router";
 import CryptoJS from "crypto-js";
 import LoginPage from "@/components/LoginPage";
 import React from "react";
-
-console.log("index - page");
+import DepositScreen from "./deposit";
+import HomeScreen from "./home";
+import DeptAmount from "./deptAmount";
+import PostponedPointsScreen from "./postponedPoints";
+import OrderScreen from "./order";
+import MakeTransactionScreen from "./makeTransaction";
+import useAdminCheck from "@/contexts/useAdminCheck";
 
 export default function IndexScreen() {
-  const [memberCode, setMemberCode] = useState("");
+  const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
 
+  const { isAdmin, userId } = useAdminCheck();
+
   useEffect(() => {
-    async function checkUserState() {
-      try {
-        const Id = await getUserSession();
-        if (Id) {
-          const userDocRef = doc(db, "deposits", Id);
-          const userDoc = await getDoc(userDocRef);
-
-          if (userDoc.exists()) {
-            const userData = userDoc.data();
-            if (userData?.isAdmin == true) {
-              await saveUserSession(Id, true);
-              router.replace("/admin");
-            } else {
-              router.replace("/home");
-            }
-          }
-        }
-      } catch (error) {
-        console.error("Error in checkUserState:", error);
-      }
+    if (userId) {
+      saveUserSession(userId, !!isAdmin);
+      router.replace("/home");
     }
-
-    checkUserState();
-  }, []);
+  }, [isAdmin, userId]);
 
   function verifyPassword(inputPassword: string, storedHashedPassword: string) {
     const hashedInputPassword = CryptoJS.SHA256(inputPassword).toString();
@@ -51,14 +39,9 @@ export default function IndexScreen() {
 
   async function registerUser() {
     const hashedPassword = CryptoJS.SHA256(password).toString();
-    const userDocRef = doc(db, "deposits", memberCode);
+    const userDocRef = doc(db, "deposits", username);
 
-    const isRegisteredUser = await getDoc(doc(db, "deposits", memberCode));
-
-    console.log(
-      "is this user registered before ? ==>",
-      isRegisteredUser.exists()
-    );
+    const isRegisteredUser = await getDoc(doc(db, "deposits", username));
 
     if (isRegisteredUser.exists()) {
       alert("رقم العضوية هذا مسجل بالفعل, جرّب تسجيل الدخول");
@@ -68,14 +51,14 @@ export default function IndexScreen() {
         createdAt: new Date(),
       });
 
-      saveUserSession(memberCode);
+      saveUserSession(username);
       console.log("User registered successfully");
       router.replace("/home");
     }
   }
 
   async function loginUser() {
-    const userDocRef = doc(db, "deposits", memberCode);
+    const userDocRef = doc(db, "deposits", username);
     const userDoc = await getDoc(userDocRef);
 
     if (userDoc.exists()) {
@@ -84,7 +67,7 @@ export default function IndexScreen() {
 
       if (isPasswordCorrect) {
         console.log("Login successful");
-        saveUserSession(memberCode);
+        saveUserSession(username);
         router.replace("/home");
         // Save user session data here
       } else {
@@ -97,41 +80,35 @@ export default function IndexScreen() {
 
   async function saveUserSession(id: string, isAdmin: boolean = false) {
     try {
-      await AsyncStorage.setItem("member_code", id);
+      await AsyncStorage.setItem("userId", id);
       await AsyncStorage.setItem("isAdmin", JSON.stringify(isAdmin));
     } catch (error) {
       console.error("Error saving session:", error);
     }
   }
 
-  return (
-    <LoginPage
-      login={loginUser}
-      register={registerUser}
-      updateMemberCode={setMemberCode}
-      updatePassword={setPassword}
-    />
-  );
-}
+  const testStatus = 3 + 4;
 
-const styles = StyleSheet.create({
-  form: {
-    width: "100%",
-    gap: 8,
-    marginTop: 24,
-    paddingHorizontal: 45,
-  },
-  formRow: {
-    marginBottom: 12,
-    borderBottomColor: "#999",
-    borderBottomWidth: 1,
-  },
-  label: {
-    fontSize: 18,
-    color: "#666",
-  },
-  input: {
-    paddingVertical: 6,
-    fontSize: 16,
-  },
-});
+  if (testStatus == 1) {
+    return <PostponedPointsScreen />;
+  } else if (testStatus == 2) {
+    return <DeptAmount />;
+  } else if (testStatus == 3) {
+    return <OrderScreen />;
+  } else if (testStatus == 4) {
+    return <DepositScreen />;
+  } else if (testStatus == 5) {
+    return <MakeTransactionScreen />;
+  } else if (testStatus == 6) {
+    return <HomeScreen />;
+  } else {
+    return (
+      <LoginPage
+        login={loginUser}
+        register={registerUser}
+        updateUsername={setUsername}
+        updatePassword={setPassword}
+      />
+    );
+  }
+}

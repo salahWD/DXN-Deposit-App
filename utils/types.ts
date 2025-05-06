@@ -28,6 +28,7 @@ export type Product = {
 };
 
 export type Deposit = {
+  id: string;
   member_code: string;
   password: string,
   username: string,
@@ -37,17 +38,18 @@ export type Deposit = {
 };
 
 export type DepositProduct = {
+  points: boolean;
   id: string | number;
   title: string;
   count: number;
-  paid: boolean;
   received: boolean;
-  points: boolean;
 }
 
 export type Transaction = {
   id: string;
   adminId: string;
+  title?: string;
+  type?: number; // 0: add money, 1: order products
   amount: number; // Positive or negative
   date: string;
   note?: string;

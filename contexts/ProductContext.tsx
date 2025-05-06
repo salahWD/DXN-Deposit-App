@@ -1,4 +1,3 @@
-// contexts/ProductContext.tsx
 import React, {
   createContext,
   useState,
@@ -7,7 +6,11 @@ import React, {
   useCallback,
 } from "react";
 import { Product } from "@/utils/types";
-import { getProductsFromDB, getDollarPrice } from "@/utils/functions";
+import {
+  getProductsFromDB,
+  getDollarPrice,
+  getDepositProductsFromDB,
+} from "@/utils/functions";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
 // Define the shape of the context
@@ -28,7 +31,7 @@ const FALLBACK_PRODUCTS: Product[] = [
     id: 1,
     tag: 1,
     count: 10,
-    special: 1, // Special product
+    special: 1,
     price: 150,
     title: {
       ar: "قهوة لينجزي السوداء",
@@ -39,7 +42,7 @@ const FALLBACK_PRODUCTS: Product[] = [
     id: 2,
     tag: 2,
     count: 5,
-    special: 0, // Regular product
+    special: 0,
     price: 80,
     title: {
       ar: "شاي الريشي",
@@ -50,7 +53,7 @@ const FALLBACK_PRODUCTS: Product[] = [
     id: 3,
     tag: 3,
     count: 8,
-    special: 2, // Another special type
+    special: 2,
     price: 200,
     title: {
       ar: "سبيرولينا عضوية",
@@ -61,7 +64,7 @@ const FALLBACK_PRODUCTS: Product[] = [
     id: 4,
     tag: 4,
     count: 15,
-    special: 0, // Regular product
+    special: 0,
     price: 50,
     title: {
       ar: "صابون الجانوديرما",
@@ -80,7 +83,7 @@ export const ProductProvider: React.FC<{ children: React.ReactNode }> = ({
 
   const sortProducts = (products: Product[]) =>
     products.sort((a, b) => {
-      const aSpecial = a.special ?? 0; // Default to 0 if undefined
+      const aSpecial = a.special ?? 0;
       const bSpecial = b.special ?? 0;
       if ((aSpecial === 1 || aSpecial === 2) && bSpecial === 0) return -1;
       if ((bSpecial === 1 || bSpecial === 2) && aSpecial === 0) return 1;
@@ -116,15 +119,56 @@ export const ProductProvider: React.FC<{ children: React.ReactNode }> = ({
     }
   };
 
+  // Merge products from both sources without duplicates
+  const mergeProducts = (
+    products: Product[],
+    depositProducts: Product[]
+  ): Product[] => {
+    const productMap = new Map<number, Product>();
+
+    // Add products from /products
+    products.forEach((product) => {
+      productMap.set(product.id, { ...product });
+    });
+
+    // Add or merge products from /deposits/<userID>/products
+    depositProducts.forEach((dp) => {
+      if (productMap.has(dp.id)) {
+        // If product exists in both sources, merge properties
+        const existing = productMap.get(dp.id)!;
+        productMap.set(dp.id, {
+          ...existing,
+          count: dp.count ?? existing.count,
+          received: dp.received,
+          points: dp.points,
+          title: {
+            ar: dp.title.ar || existing.title.ar,
+            tr: dp.title.tr || existing.title.tr,
+          },
+        });
+      } else {
+        // If product only in deposit, add it
+        productMap.set(dp.id, { ...dp });
+      }
+    });
+
+    return Array.from(productMap.values());
+  };
+
   const fetchProducts = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      const [fetchedProducts, fetchDollarPrice] = await Promise.all([
-        getProductsFromDB(),
-        getDollarPrice(),
-      ]);
-      const sortedProducts = sortProducts(fetchedProducts);
+      // Assume userID is stored in AsyncStorage or passed as prop
+      const userID = (await AsyncStorage.getItem("userID")) || "default_user";
+      const [fetchedProducts, depositProducts, fetchDollarPrice] =
+        await Promise.all([
+          getProductsFromDB(),
+          getDepositProductsFromDB(userID),
+          getDollarPrice(),
+        ]);
+      const mergedProducts = mergeProducts(fetchedProducts, depositProducts);
+      const sortedProducts = sortProducts(mergedProducts);
       setProducts(sortedProducts);
       setDollarPrice(fetchDollarPrice);
       await saveCachedProducts(sortedProducts);
@@ -148,8 +192,8 @@ export const ProductProvider: React.FC<{ children: React.ReactNode }> = ({
       const cachedProducts = await loadCachedProducts();
       if (cachedProducts) {
         setProducts(sortProducts(cachedProducts));
-        setLoading(false); // Use cached data immediately
-        fetchProducts(); // Fetch fresh data in background
+        setLoading(false);
+        fetchProducts();
       } else {
         setProducts(sortProducts(FALLBACK_PRODUCTS));
         setError("No internet connection. Showing fallback data.");

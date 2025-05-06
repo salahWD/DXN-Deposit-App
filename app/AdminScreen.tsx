@@ -13,9 +13,8 @@ const AdminPage = () => {
   const [orders, setOrders] = useState<Order[]>([]);
 
   useEffect(() => {
-    const unsubscribe = subscribeToOrders((va) => {
-      console.log(va);
-      setOrders(va);
+    const unsubscribe = subscribeToOrders((val) => {
+      setOrders(val);
     });
     return () => unsubscribe(); // Cleanup on unmount
   }, []);
@@ -30,10 +29,7 @@ const AdminPage = () => {
       ) : (
         orders.map((order: Order, index) => (
           <View key={index} style={styles.orderBox}>
-            <Text style={styles.orderTitle}>
-              {order?.username}{" "}
-              <Text style={{ color: "#ababab" }}>[{order.userId}]</Text>
-            </Text>
+            <Text style={styles.orderTitle}>{order?.userId} </Text>
             <View
               style={{
                 borderBottomColor: "#777",
@@ -41,17 +37,9 @@ const AdminPage = () => {
                 borderBottomWidth: StyleSheet.hairlineWidth,
               }}
             />
-            <Text style={{ textAlign: "center", color: "#777" }}>
+            {/* <Text style={{ textAlign: "center", color: "#777" }}>
               العضوية: {order?.orderMemberId}
-            </Text>
-            <View
-              style={{
-                borderBottomColor: "#777",
-                marginTop: 4,
-                marginBottom: 6,
-                borderBottomWidth: StyleSheet.hairlineWidth,
-              }}
-            />
+            </Text> */}
             <View style={{ padding: 10, paddingBottom: 6 }}>
               {order.products.map((product: OrderProducts, idx) => (
                 <View style={styles.productRow} key={idx}>

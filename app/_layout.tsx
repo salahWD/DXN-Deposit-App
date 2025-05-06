@@ -30,8 +30,12 @@ export default function RootLayout() {
       <Stack>
         <Stack.Screen name="index" options={{ headerShown: false }} />
         <Stack.Screen name="home" options={{ headerShown: false }} />
+        <Stack.Screen name="deptAmount" options={{ headerShown: false }} />
         <Stack.Screen name="order" options={{ headerShown: false }} />
+        <Stack.Screen name="postponedPoints" options={{ headerShown: false }} />
         <Stack.Screen name="deposit" options={{ headerShown: false }} />
+        <Stack.Screen name="makeTransaction" options={{ headerShown: false }} />
+        <Stack.Screen name="PointsOrders" options={{ headerShown: false }} />
         <Stack.Screen name="admin" options={{ headerShown: false }} />
         <Stack.Screen
           name="depositManagement"
