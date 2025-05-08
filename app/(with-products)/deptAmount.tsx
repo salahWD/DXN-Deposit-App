@@ -62,15 +62,15 @@ export default function DeptAmount() {
           }}
         ></View>
         <View style={styles.cardContainer}>
-          <Text style={styles.title}>بواسطة: {item.adminId}</Text>
+          <Text style={styles.title}>
+            بواسطة: {item?.adminId ? item?.adminId : "انت"}
+          </Text>
           <View style={styles.priceContainer}>
             <Text style={styles.price}>{item.amount}</Text>
             <Text style={styles.currency}>TL</Text>
           </View>
 
-          <View style={styles.featureList}>
-            {/* <FeatureItem text={"2 team members"} />
-            <FeatureItem text="24×7 phone & email support" enabled={false} /> */}
+          <View style={styles.featureItem}>
             <View
               style={{
                 borderBottomColor: "#777",

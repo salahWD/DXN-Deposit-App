@@ -11,12 +11,12 @@ import { router } from "expo-router";
 import CryptoJS from "crypto-js";
 import LoginPage from "@/components/LoginPage";
 import React from "react";
-import DepositScreen from "./deposit";
-import HomeScreen from "./home";
-import DeptAmount from "./deptAmount";
-import PostponedPointsScreen from "./postponedPoints";
-import OrderScreen from "./order";
-import MakeTransactionScreen from "./makeTransaction";
+import DepositScreen from "./(with-products)/deposit";
+import HomeScreen from "./(with-products)/home";
+import DeptAmount from "./(with-products)/deptAmount";
+import PostponedPointsScreen from "./(with-products)/postponedPoints";
+import OrderScreen from "./(with-products)/order";
+import MakeTransactionScreen from "./(with-products)/makeTransaction";
 import useAdminCheck from "@/contexts/useAdminCheck";
 
 export default function IndexScreen() {

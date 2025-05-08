@@ -10,6 +10,8 @@ import React from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import useAdminCheck from "@/contexts/useAdminCheck";
 
+import { Colors } from "@/constants/Colors";
+
 export default function HomeScreen() {
   const [depositProductsCount, setDepositProductsCount] = useState(0);
   const [depositPoints, setDepositPoints] = useState(0);
@@ -63,26 +65,33 @@ export default function HomeScreen() {
     {
       id: 5,
       adminOnly: true,
-      title: "مراجعة الطلبات",
-      color: "darkblue",
+      title: "طلبات تنزيل النقاط",
+      color: "#7b0c8e",
       value: "خاص بالإدارة",
     },
     {
       id: 6,
       adminOnly: true,
-      title: "مراجعة تنزيل النقاط",
-      color: "orange",
+      title: "طلبات المنتجات",
+      color: "#e18600",
       value: "خاص بالإدارة",
     },
     {
       id: 7,
+      adminOnly: true,
+      title: "طلبات السداد",
+      color: "darkblue",
+      value: "خاص بالإدارة",
+    },
+    {
+      id: 8,
       adminOnly: true,
       title: "التقارير",
       color: "darkgreen",
       value: "خاص بالإدارة",
     },
     {
-      id: 8,
+      id: 9,
       adminOnly: true,
       title: "إدارة الودائع",
       color: "green",
@@ -92,14 +101,12 @@ export default function HomeScreen() {
 
   const { products } = useProducts();
 
-  const { isAdmin, isLoading } = useAdminCheck();
+  const { isAdmin, userId, isLoading } = useAdminCheck();
 
   useEffect(() => {
     const getStats = async () => {
-      const Id = await getUserSession();
-
-      if (Id) {
-        const stats = await homePageStats(Id, products);
+      if (userId) {
+        const stats = await homePageStats(userId, products);
         if (stats) {
           setDepositProductsCount(stats.depositProductsCount);
           setDepositPoints(stats.postponedPoints);
@@ -125,12 +132,14 @@ export default function HomeScreen() {
     } else if (route == 4) {
       router.replace("/makeTransaction");
     } else if (route == 5) {
-      router.replace("/admin");
-    } else if (route == 6) {
       router.replace("/PointsOrders");
+    } else if (route == 6) {
+      router.replace("/admin");
     } else if (route == 7) {
-      router.replace("/reports");
+      router.replace("/TransactionsOrders");
     } else if (route == 8) {
+      router.replace("/reports");
+    } else if (route == 9) {
       router.replace("/depositManagement");
     }
   };
@@ -142,7 +151,14 @@ export default function HomeScreen() {
   };
 
   return (
-    <ThemedView style={styles.content}>
+    <ScrollView
+      style={styles.content}
+      contentContainerStyle={{
+        padding: 32,
+        paddingTop: 50,
+        paddingHorizontal: 28,
+      }}
+    >
       <ThemedView style={styles.titleContainer}>
         <ThemedText
           type="title"
@@ -193,16 +209,15 @@ export default function HomeScreen() {
           </View>
         </Pressable>
       </View>
-    </ThemedView>
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
   content: {
     minHeight: "100%",
-    padding: 32,
-    paddingHorizontal: 28,
     gap: 16,
+    backgroundColor: Colors.background,
   },
   titleContainer: {
     flexDirection: "row",

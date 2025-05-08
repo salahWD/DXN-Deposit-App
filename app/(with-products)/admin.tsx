@@ -2,7 +2,7 @@ import { ThemedView } from "@/components/ThemedView";
 
 import { StyleSheet, Text, View } from "react-native";
 
-import AdminPage from "@/app/AdminScreen";
+import AdminPage from "@/app/(with-products)/AdminScreen";
 import useAdminCheck from "@/contexts/useAdminCheck";
 import HeaderBox from "@/components/HeaderBox";
 import React from "react";

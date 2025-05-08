@@ -1,6 +1,6 @@
 import { Text } from "react-native";
 
-import DepositManagementScreen from "@/app/DepositManagementScreen";
+import DepositManagementScreen from "@/app/(with-products)/DepositManagementScreen";
 import useAdminCheck from "@/contexts/useAdminCheck";
 import React from "react";
 

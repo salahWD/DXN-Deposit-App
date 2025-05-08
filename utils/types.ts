@@ -19,6 +19,7 @@ export type Product = {
   tag?: number,
   count: number;
   special?: number,
+  points: number,
   price: number,
   id: number,
   title: {
@@ -32,7 +33,7 @@ export type Deposit = {
   id: string;
   password: string,
   username: string,
-  userId?: string,
+  userId: string,
   isAdmin: boolean,
   products?: DepositProduct[],
   transactions?: Transaction[],
@@ -47,14 +48,20 @@ export type DepositProduct = {
 }
 
 export type Transaction = {
-  id: string;
-  adminId: string;
-  title?: string;
-  type?: number; // 0: add money, 1: order products
+  id?: string;
+  adminId?: string;
   amount: number; // Positive or negative
-  date: string;
   note?: string;
+  created_at: Date,
 }
+
+export type TransactionOrder = {
+  id?: string,
+  userId: string,
+  amount: number,
+  note?: string,
+  created_at: Date,
+};
 
 export const orderStatuses = [
   {

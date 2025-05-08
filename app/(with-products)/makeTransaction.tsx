@@ -1,14 +1,13 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { submitTransaction } from "@/utils/functions";
 import useAdminCheck from "@/contexts/useAdminCheck";
+import { router } from "expo-router";
 
 import { ThemedView } from "@/components/ThemedView";
 import {
   StyleSheet,
-  FlatList,
   View,
   TouchableOpacity,
-  Pressable,
   Text,
   TextInput,
 } from "react-native";
@@ -19,6 +18,7 @@ import HeaderBox from "@/components/HeaderBox";
 export default function MakeTransactionScreen() {
   const { userId } = useAdminCheck();
 
+  const [loading, setLoading] = useState(false);
   const [amount, setAmount] = useState("");
   const [note, setNote] = useState("");
   const [error, setError] = useState("");
@@ -29,9 +29,22 @@ export default function MakeTransactionScreen() {
       return;
     }
 
+    setLoading(true);
     setError("");
-    submitTransaction(userId, parseFloat(amount), note || "");
-    console.log("Amount sent:", amount);
+    const makeTransactionOrder = async () => {
+      const res = await submitTransaction(
+        userId,
+        parseFloat(amount),
+        note || ""
+      );
+      if (res) {
+        alert("تم تقديم طلب السداد!");
+        router.replace("/home");
+      } else {
+        console.log("خطأ في تقديم الطلب");
+      }
+    };
+    makeTransactionOrder();
   };
 
   return (
@@ -83,6 +96,7 @@ export default function MakeTransactionScreen() {
             />
             <TouchableOpacity
               onPress={handleSend}
+              disabled={loading}
               style={{
                 backgroundColor: "#06b6d4",
                 paddingVertical: 12,
@@ -91,7 +105,7 @@ export default function MakeTransactionScreen() {
               }}
             >
               <Text style={{ color: "#fff", fontSize: 16, fontWeight: "600" }}>
-                إرسال
+                {loading ? "جاري التحميل..." : "إرسال"}
               </Text>
             </TouchableOpacity>
           </ThemedView>

@@ -10,12 +10,14 @@ import {
   setDoc,
   Unsubscribe,
   arrayUnion,
-  query, where
+  query, where,
+  orderBy
 } from "firebase/firestore";
 import { db } from "@/firebaseConfig";
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Product, Order, Deposit, Transaction, DepositProduct } from '@/utils/types';
+import { Product, Order, Deposit, Transaction, DepositProduct, TransactionOrder } from '@/utils/types';
+import DeptAmount from "@/app/(with-products)/deptAmount";
 
 export const getUserSession = async () => {
   return await AsyncStorage.getItem('userId');
@@ -117,6 +119,7 @@ export const approveOrder = async (order: Order, products: Product[]) => {
   const depositSnap = await getDoc(userDepositRef);
   let currentProducts: DepositProduct[] = [];
   let currentDept: number = 0;
+
   if (depositSnap.exists()) {
     console.log("Deposit document exists, fetching products...");
     currentProducts = depositSnap.data().products || [];
@@ -443,18 +446,39 @@ export const addTransactionToDeposit = async (
   amount: number,
   note?: string
 ) => {
+
   console.log("adding transaction started")
-  const userDepositRef = doc(db, 'deposits', userId);
+  
+  const userTransactionRef = doc(
+    collection(db, `deposits/${userId}/transactions`)
+  );
+
+  // const userDepositRef = doc(db, 'deposits', userId);
   const newTransaction: Transaction = {
-    id: Date.now().toString(), // Simple unique ID
     adminId,
     amount,
-    date: new Date().toISOString(),
+    created_at: new Date(),
     note,
   };
-  await updateDoc(userDepositRef, {
-    transactions: arrayUnion(newTransaction),
-  });
+  
+  await setDoc(userTransactionRef, newTransaction);
+
+  const depositRef = doc(db, "deposits", userId);
+  const depositSnap = await getDoc(depositRef);
+  
+  if (!depositSnap.exists()) {
+    alert("الحساب الطالب للمعاملة غير موجود");
+    return;
+  }
+
+  const depositDeptAmount = depositSnap.data()?.deptAmount || 0;
+  const newDeptAmount = depositDeptAmount + amount;
+  await updateDoc(depositRef, { deptAmount: newDeptAmount });
+
+  // await updateDoc(userDepositRef, {
+  //   transactions: arrayUnion(newTransaction),
+  // });
+
 };
 
 // Calculate balance from transactions (not a DB call, but a utility function)
@@ -568,46 +592,32 @@ export async function fetchUserAccountStatement(
   try {
     onLoadingChange(true);
   
-    // ✅ Fix: Get document directly
-    const depositDocRef = doc(db, "deposits", userId);
-    const depositDocSnap = await getDoc(depositDocRef);
-  
-    if (depositDocSnap.exists()) {
+    const transactionsRef = collection(db, "deposits", userId, "transactions");
+    const q = query(transactionsRef, orderBy("created_at", "desc"));
 
-      const depositData = depositDocSnap.data();
-      if (depositData.transactions && Array.isArray(depositData.transactions)) {
-        onTransactionsChange(depositData.transactions);
-        onError(null);
-      }
-    }else {
+    const querySnapshot = await getDocs(q);
+
+    if (!querySnapshot.empty) {
+      const transactions: Transaction[] = querySnapshot.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+      })) as Transaction[];
+
+      onTransactionsChange(transactions);
+      onError("");
+    } else {
       console.log("no transactions found");
       onTransactionsChange([]);
       onError("لا توجد معاملات سابقة لك في النظام");
     }
-
   } catch (error) {
-    console.error("Error fetching deposit or orders:", error);
-    onError("غير متصل بالإنترنت أو حدث خطأ. حاول لاحقًا.");
+    console.error("Error fetching transactions:", error);
     onTransactionsChange([]);
+    onError("غير متصل بالإنترنت أو حدث خطأ. حاول لاحقًا.");
   } finally {
     onLoadingChange(false);
   }
-}
 
-export async function submitTransaction(userId: string, amount: number, note?: string) {
-  // if (orderProducts.length === 0) {
-  //   alert('لم يتم اختيار اي منتجات!');
-  //   return false;
-  // }
-
-  await addDoc(collection(db, 'pointOrders'), {
-    userId,
-    amount: amount,
-    note: note || "",
-    created_at: new Date().toISOString(),
-  });
-  alert('تم تقديم طلب السداد!');
-  return true;
 }
 
 export async function getDepositProductsFromDB(
@@ -644,3 +654,120 @@ export async function getDepositProductsFromDB(
       return [];
     }
   };
+
+export async function submitTransaction(userId: string, amount: number, note?: string) {
+
+  await addDoc(collection(db, 'transactionOrders'), {
+    userId,
+    amount: amount,
+    note: note || "",
+    created_at: new Date(),
+  });
+  return true;
+}
+
+export async function approveTransactionOrder(orderId: string, userId: string) {
+
+  const orderRef = doc(db, "transactionOrders", orderId);
+  const transactionOrderSnap = await getDoc(orderRef);
+
+  const depositRef = doc(db, "deposits", userId);
+  const depositSnap = await getDoc(depositRef);
+
+  if (!transactionOrderSnap.exists()) {
+    alert("طلب المعاملة غير موجود");
+    return;
+  }
+
+  if (!depositSnap.exists()) {
+    alert("الحساب الطالب للمعاملة غير موجود");
+    return;
+  }
+
+  const transactionOrder = transactionOrderSnap.data();
+  const depositDeptAmount = depositSnap.data()?.deptAmount || 0;
+  const newDeptAmount = depositDeptAmount - transactionOrder.amount;
+
+  const userTransactionRef = doc(
+    collection(db, `deposits/${userId}/transactions`)
+  );
+
+  await setDoc(userTransactionRef, transactionOrder);
+  await updateDoc(depositRef, { deptAmount: newDeptAmount });
+
+  await deleteDoc(orderRef);
+
+  alert("تم قبول السداد!");
+};
+
+export async function rejectTransactionOrder(orderId: string) {
+  const orderRef = doc(db, "transactionOrders", orderId);
+
+  const transactionOrderSnap = await getDoc(orderRef);
+  let transactionOrder = transactionOrderSnap.exists() ? transactionOrderSnap.data() : null;
+  if (transactionOrder) {
+    await deleteDoc(orderRef);
+    alert("تم رفض السداد!");
+  }
+};
+
+export const subscribeToTransactionOrders = (callback: (orders: TransactionOrder[]) => void) => {
+  return onSnapshot(collection(db, "transactionOrders"), async (snapshot) => {
+    const ordersArray = await Promise.all(
+      snapshot.docs.map(async (docSnapshot) => {
+        const orderData = docSnapshot.data();
+
+        return {
+          id: docSnapshot.id,
+          ...orderData,
+        };
+      })
+    );
+    callback(ordersArray);
+  });
+};
+
+export async function getReportStats(products: Product[]) {
+  let totalDBDept = 0;
+  let totalDBUnreceivedProducts = 0;
+  let totalDBPoints = 0;
+
+  try {
+    const depositsRef = collection(db, "deposits");
+    const snapshot = await getDocs(depositsRef);
+    
+    snapshot.forEach((doc) => {
+      const data = doc.data();
+      const deptAmount = data?.deptAmount;
+      const unreceivedProducts = data?.products?.reduce((total: number, item: DepositProduct) => !item.received ? (total + item.count) : total, 0);
+      const postponedPoints = data?.products?.reduce((total: number, item: DepositProduct) => {
+        const productPoints = products.find((prod) => prod.id == item.id)?.points || 0;
+        return !item.points ? (total + (productPoints * item.count)) : total;
+      }, 0);
+
+      console.log("=========================")
+      console.log(deptAmount,
+        unreceivedProducts,
+        postponedPoints)
+      console.log("=========================")
+
+      if (deptAmount && typeof deptAmount === "number") {
+        totalDBDept += deptAmount;
+      }
+      if (unreceivedProducts && typeof unreceivedProducts === "number") {
+        totalDBUnreceivedProducts += unreceivedProducts;
+      }
+      if (postponedPoints && typeof postponedPoints === "number") {
+        totalDBPoints += postponedPoints;
+      }
+    });
+  } catch (error) {
+    console.error("Error fetching total dept amount:", error);
+  }
+
+  return {
+    totalDeptAmount: totalDBDept,
+    totalProducts: totalDBUnreceivedProducts,
+    totalPoints: totalDBPoints,
+  };
+}

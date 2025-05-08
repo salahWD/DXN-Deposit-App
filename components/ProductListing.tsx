@@ -62,12 +62,14 @@ const ProductListing = ({ resetKey, updateOrder }: ProductListingProps) => {
         <Text>Loading...</Text>
       </View>
     );
-  if (products.length === 0)
+  if (products.length === 0) {
+    console.log(products);
     return (
       <View style={{ flex: 1, paddingHorizontal: 32, paddingVertical: 10 }}>
         <Text>لا يوجد منتجات</Text>
       </View>
     );
+  }
 
   return (
     <View style={{ flex: 1 }}>
@@ -84,7 +86,7 @@ const ProductListing = ({ resetKey, updateOrder }: ProductListingProps) => {
                 depositProducts
                   .filter((depP) => depP.id == product.id)
                   ?.reduce(
-                    (val, item) => (item.points ? (val += item?.count) : val),
+                    (val, item) => (!item.points ? (val += item?.count) : val),
                     0
                   ) || 0
               }

@@ -22,7 +22,6 @@ const useAdminCheck = () => {
       if (!ID) {
         console.log("No user ID, please login");
         setIsAdmin(false);
-        router.replace("/index");
         return;
       }
 
