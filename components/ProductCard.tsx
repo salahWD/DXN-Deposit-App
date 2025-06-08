@@ -14,7 +14,7 @@ interface ProductCardProps extends Pick<Product, "price"> {
   depositCount?: number;
   product: Product;
   handleChangedCount: (product: Product, count: number) => void;
-  displayOnly: Boolean;
+  displayOnly?: Boolean;
 }
 
 const ProductCard = ({

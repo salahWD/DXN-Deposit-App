@@ -13,6 +13,7 @@ import React from "react";
 import { ThemedView } from "@/components/ThemedView";
 import ProductListing from "@/components/ProductListing";
 import HeaderBox from "@/components/HeaderBox";
+import { useProducts } from "@/contexts/ProductContext";
 
 import Icon from "react-native-vector-icons/MaterialCommunityIcons";
 
@@ -22,8 +23,10 @@ import { Order, Product } from "@/utils/types";
 import useAdminCheck from "@/contexts/useAdminCheck";
 
 export default function OrderScreen() {
+  const { products } = useProducts();
   const [orderProducts, setOrderProducts] = useState<Order[]>([]); // Array of {id, title, count}
   const [resetKey, setResetKey] = useState(0);
+  const [buttonLoading, setButtonLoading] = useState(false);
 
   const { userId } = useAdminCheck();
 
@@ -48,6 +51,8 @@ export default function OrderScreen() {
   };
 
   const handleSubmitOrder = async () => {
+    if (buttonLoading) return;
+    setButtonLoading(true);
     if (userId) {
       const res = await depositAddProductsOrder(userId, orderProducts);
       setOrderProducts([]);
@@ -71,7 +76,7 @@ export default function OrderScreen() {
 
       <ThemedView style={styles.buttonContainer}>
         <View>
-          <Pressable onPress={handleSubmitOrder}>
+          <TouchableOpacity onPress={handleSubmitOrder}>
             <View
               style={{
                 width: "100%",
@@ -85,12 +90,21 @@ export default function OrderScreen() {
                 justifyContent: "center",
               }}
             >
-              <Icon name="cart-outline" style={{ fontSize: 25 }} />
-              <Text style={{ fontSize: 18, fontWeight: "bold" }}>
-                إتمام الطلب
-              </Text>
+              {!buttonLoading && (
+                <>
+                  <Icon name="cart-outline" style={{ fontSize: 25 }} />
+                  <Text style={{ fontSize: 18, fontWeight: "bold" }}>
+                    إتمام الطلب
+                  </Text>
+                </>
+              )}
+              {buttonLoading && (
+                <Text style={{ fontSize: 18, fontWeight: "bold" }}>
+                  جاري التحميل ...
+                </Text>
+              )}
             </View>
-          </Pressable>
+          </TouchableOpacity>
         </View>
       </ThemedView>
     </ThemedView>

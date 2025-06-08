@@ -13,9 +13,7 @@ import {
 } from "@/utils/functions";
 
 const TransactionsOrders = () => {
-  const { isLoading } = useAdminCheck();
-
-  if (isLoading) return <Text>Loading...</Text>;
+  const { isLoading, userId } = useAdminCheck();
 
   const [orders, setOrders] = useState<TransactionOrder[]>([]);
 
@@ -25,6 +23,8 @@ const TransactionsOrders = () => {
     });
     return () => unsubscribe();
   }, []);
+
+  if (isLoading) return <Text>Loading...</Text>;
 
   return (
     <View style={styles.squaresContainer}>
@@ -84,7 +84,7 @@ const TransactionsOrders = () => {
                       onPress={() =>
                         order.id &&
                         order.userId &&
-                        approveTransactionOrder(order.id, order.userId)
+                        approveTransactionOrder(order.id, order.userId, userId)
                       }
                     >
                       <Text style={styles.buttonText}>

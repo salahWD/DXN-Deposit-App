@@ -18,6 +18,7 @@ export default function PostponedPointsScreen() {
   const [orderProducts, setOrderProducts] = useState<Order[]>([]); // Array of {id, title, count}
   const [resetKey, setResetKey] = useState(0);
   const [isModalVisible, setIsModalVisible] = useState(false);
+  const [sendRequestLoading, setSendRequestLoading] = useState(false);
 
   const { userId } = useAdminCheck();
 
@@ -43,11 +44,19 @@ export default function PostponedPointsScreen() {
 
   const handleSubmitOrder = async (orderMemberId: string) => {
     if (userId) {
-      const res = await submitPointsOrder(userId, orderMemberId, orderProducts);
-      setOrderProducts([]);
-      setResetKey((prev) => prev + 1);
-      if (res) {
-        router.replace("/home");
+      if (!sendRequestLoading) {
+        setSendRequestLoading(true);
+        const res = await submitPointsOrder(
+          userId,
+          orderMemberId,
+          orderProducts
+        );
+        setOrderProducts([]);
+        setResetKey((prev) => prev + 1);
+        if (res) {
+          setSendRequestLoading(false);
+          router.replace("/home");
+        }
       }
     } else {
       console.log("you have no user id please login first");

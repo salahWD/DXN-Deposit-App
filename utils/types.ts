@@ -21,7 +21,7 @@ export type Product = {
   special?: number,
   points: number,
   price: number,
-  id: number,
+  id: number | string,
   title: {
     ar: string,
     tr: string
@@ -62,6 +62,17 @@ export type TransactionOrder = {
   note?: string,
   created_at: Date,
 };
+
+export type Action = {
+  userId: string;
+  id?: string;
+  adminId?: string;
+  amount?: number; // positive and negative
+  title: string;
+  products: OrderProducts[];
+  notes?: string;
+  created_at: Date,
+}
 
 export const orderStatuses = [
   {

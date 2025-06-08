@@ -1,6 +1,10 @@
-import { ThemedView } from "@/components/ThemedView";
-
-import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import {
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
 
 import Icon from "react-native-vector-icons/MaterialCommunityIcons";
 
@@ -16,9 +20,8 @@ import {
 } from "@/utils/functions";
 
 const pointsOrders = () => {
-  const { isLoading } = useAdminCheck();
-
-  if (isLoading) return <Text>Loading...</Text>;
+  const { isLoading, userId: adminId } = useAdminCheck();
+  const [actionLoading, setActionLoading] = useState(false);
 
   const [orders, setOrders] = useState<Order[]>([]);
   const { products } = useProducts();
@@ -29,6 +32,8 @@ const pointsOrders = () => {
     });
     return () => unsubscribe();
   }, []);
+
+  if (isLoading) return <Text>Loading...</Text>;
 
   return (
     <View style={styles.squaresContainer}>
@@ -75,7 +80,15 @@ const pointsOrders = () => {
                   <View
                     style={{ ...styles.button, backgroundColor: "#ff6e6e" }}
                   >
-                    <Pressable onPress={() => rejectPointsOrder(order.id)}>
+                    <TouchableOpacity
+                      onPress={async () => {
+                        if (!actionLoading) {
+                          setActionLoading(true);
+                          await rejectPointsOrder(order.id);
+                          setActionLoading(false);
+                        }
+                      }}
+                    >
                       <Text style={styles.buttonText}>
                         رفض الطلب
                         <Icon
@@ -85,11 +98,17 @@ const pointsOrders = () => {
                           }}
                         />
                       </Text>
-                    </Pressable>
+                    </TouchableOpacity>
                   </View>
                   <View style={styles.button}>
-                    <Pressable
-                      onPress={() => approvePointsOrder(order, products)}
+                    <TouchableOpacity
+                      onPress={async () => {
+                        if (!actionLoading) {
+                          setActionLoading(true);
+                          await approvePointsOrder(order, products, adminId);
+                          setActionLoading(false);
+                        }
+                      }}
                     >
                       <Text style={styles.buttonText}>
                         قبول الطلب
@@ -100,7 +119,7 @@ const pointsOrders = () => {
                           }}
                         />
                       </Text>
-                    </Pressable>
+                    </TouchableOpacity>
                   </View>
                 </View>
               </View>
@@ -116,6 +135,7 @@ export default pointsOrders;
 
 const styles = StyleSheet.create({
   squaresContainer: {
+    backgroundColor: "#fff",
     flexWrap: "wrap",
     justifyContent: "space-between",
     gap: 16,

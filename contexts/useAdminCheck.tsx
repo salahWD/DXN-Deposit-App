@@ -1,70 +1,57 @@
 import { useState, useEffect } from "react";
-import { doc, onSnapshot, Unsubscribe } from "firebase/firestore";
+import { doc, getDoc } from "firebase/firestore";
 import { db } from "@/firebaseConfig";
 import { getUserSession } from "@/utils/functions";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { useRouter } from "expo-router"; // Use expo-router for navigation
 
 const ADMIN_STATUS_CACHE_KEY = "admin_status";
 
 const useAdminCheck = () => {
   const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
   const [userId, setUserId] = useState<string>("");
-  const router = useRouter();
 
   useEffect(() => {
-    let unsubscribe: Unsubscribe | undefined;
-
     const checkAdminStatus = async () => {
       const ID = await getUserSession();
-      setUserId(ID ?? "");
-
       if (!ID) {
         console.log("No user ID, please login");
         setIsAdmin(false);
         return;
-      }
+      } else {
+        setUserId(ID);
 
-      const cachedStatus = await AsyncStorage.getItem(
-        `${ADMIN_STATUS_CACHE_KEY}_${userId}`
-      );
-      if (cachedStatus !== null) {
-        setIsAdmin(cachedStatus === "true");
-      }
+        const cacheKey = `${ADMIN_STATUS_CACHE_KEY}_${ID}`;
+        const cachedStatus = await AsyncStorage.getItem(cacheKey);
 
-      const userRef = doc(db, "deposits", userId);
-      unsubscribe = onSnapshot(
-        userRef,
-        (snapshot) => {
-          const data = snapshot.data();
-          const adminStatus = data?.isAdmin === true;
+        if (cachedStatus !== null) {
+          setIsAdmin(cachedStatus === "true");
+        }
+
+        try {
+          const snapshot = await getDoc(doc(db, "deposits", ID));
+
+          const adminStatus =
+            snapshot.exists() && snapshot.data()?.isAdmin === true;
+
           setIsAdmin(adminStatus);
-          AsyncStorage.setItem("userId", userId);
-          AsyncStorage.setItem(
-            `${ADMIN_STATUS_CACHE_KEY}_${userId}`,
-            adminStatus.toString()
-          );
-        },
-        (error) => {
+
+          await AsyncStorage.setItem("userId", ID);
+          await AsyncStorage.setItem(cacheKey, adminStatus.toString());
+        } catch (error) {
           console.error("Error checking admin status:", error);
           if (cachedStatus !== null) {
-            setIsAdmin(cachedStatus === "true"); // Use cached status
+            setIsAdmin(cachedStatus === "true"); // fallback to cached value
           } else {
-            setIsAdmin(false); // Default to non-admin if no cache
+            setIsAdmin(false);
           }
         }
-      );
+      }
     };
 
     checkAdminStatus();
+  }, []);
 
-    return () => {
-      if (unsubscribe) unsubscribe();
-    };
-  }, [isAdmin, userId]);
-
-  // Return the admin status and a loading state
-  return { isAdmin, isLoading: typeof isAdmin == null, userId: userId };
+  return { isAdmin, isLoading: isAdmin === null, userId };
 };
 
 export default useAdminCheck;

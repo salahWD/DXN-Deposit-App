@@ -1,7 +1,3 @@
-import { getUserSession } from "@/utils/functions";
-
-import { StyleSheet } from "react-native";
-
 import { db } from "@/firebaseConfig";
 import { doc, setDoc, getDoc } from "firebase/firestore";
 import { useState, useEffect } from "react";
@@ -11,12 +7,6 @@ import { router } from "expo-router";
 import CryptoJS from "crypto-js";
 import LoginPage from "@/components/LoginPage";
 import React from "react";
-import DepositScreen from "./(with-products)/deposit";
-import HomeScreen from "./(with-products)/home";
-import DeptAmount from "./(with-products)/deptAmount";
-import PostponedPointsScreen from "./(with-products)/postponedPoints";
-import OrderScreen from "./(with-products)/order";
-import MakeTransactionScreen from "./(with-products)/makeTransaction";
 import useAdminCheck from "@/contexts/useAdminCheck";
 
 export default function IndexScreen() {
@@ -24,10 +14,16 @@ export default function IndexScreen() {
   const [password, setPassword] = useState("");
 
   const { isAdmin, userId } = useAdminCheck();
-
+  console.log(
+    "from index, isAdmin => (",
+    isAdmin,
+    ") userId => (",
+    userId,
+    ")"
+  );
   useEffect(() => {
     if (userId) {
-      saveUserSession(userId, !!isAdmin);
+      saveUserSession(userId);
       router.replace("/home");
     }
   }, [isAdmin, userId]);
@@ -78,37 +74,21 @@ export default function IndexScreen() {
     }
   }
 
-  async function saveUserSession(id: string, isAdmin: boolean = false) {
+  async function saveUserSession(id: string) {
+    console.log("save user session ", id);
     try {
       await AsyncStorage.setItem("userId", id);
-      await AsyncStorage.setItem("isAdmin", JSON.stringify(isAdmin));
     } catch (error) {
       console.error("Error saving session:", error);
     }
   }
 
-  const testStatus = 3 + 4;
-
-  if (testStatus == 1) {
-    return <PostponedPointsScreen />;
-  } else if (testStatus == 2) {
-    return <DeptAmount />;
-  } else if (testStatus == 3) {
-    return <OrderScreen />;
-  } else if (testStatus == 4) {
-    return <DepositScreen />;
-  } else if (testStatus == 5) {
-    return <MakeTransactionScreen />;
-  } else if (testStatus == 6) {
-    return <HomeScreen />;
-  } else {
-    return (
-      <LoginPage
-        login={loginUser}
-        register={registerUser}
-        updateUsername={setUsername}
-        updatePassword={setPassword}
-      />
-    );
-  }
+  return (
+    <LoginPage
+      login={loginUser}
+      register={registerUser}
+      updateUsername={setUsername}
+      updatePassword={setPassword}
+    />
+  );
 }

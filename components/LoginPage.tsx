@@ -10,6 +10,7 @@ import {
 } from "react-native";
 
 import { useState, useEffect } from "react";
+import React from "react";
 
 console.log("index - page");
 
@@ -65,6 +66,7 @@ export default function LoginPage({
           <View style={styles.formRow}>
             <Text style={styles.label}>كلمة المرور</Text>
             <TextInput
+              autoCapitalize="none"
               style={styles.input}
               textContentType="password"
               secureTextEntry={true}

@@ -1,5 +1,12 @@
 import { useState, useEffect } from "react";
-import { View, Text, StyleSheet, ScrollView, Pressable } from "react-native";
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  Pressable,
+  TouchableOpacity,
+} from "react-native";
 import { Order, OrderProducts } from "@/utils/types";
 import { useProducts } from "@/contexts/ProductContext";
 import Icon from "react-native-vector-icons/MaterialCommunityIcons";
@@ -9,15 +16,16 @@ import {
   rejectOrder,
 } from "@/utils/functions";
 import React from "react";
+import useAdminCheck from "@/contexts/useAdminCheck";
 
 const AdminPage = () => {
   const [orders, setOrders] = useState<Order[]>([]);
+  const [buttonLoading, setButtonLoading] = useState<boolean>(false);
   const { products } = useProducts();
+  const { userId } = useAdminCheck();
 
   useEffect(() => {
     const unsubscribe = subscribeToOrders((val) => {
-      console.log("=======================");
-      console.log(val);
       setOrders(val);
     });
     return () => unsubscribe(); // Cleanup on unmount
@@ -66,7 +74,14 @@ const AdminPage = () => {
                   </Pressable>
                 </View>
                 <View style={styles.button}>
-                  <Pressable onPress={() => approveOrder(order, products)}>
+                  <TouchableOpacity
+                    onPress={async () => {
+                      if (buttonLoading) return;
+                      setButtonLoading(true);
+                      await approveOrder(order, products, userId);
+                      setButtonLoading(false);
+                    }}
+                  >
                     <Text style={styles.buttonText}>
                       قبول الطلب
                       <Icon
@@ -76,7 +91,7 @@ const AdminPage = () => {
                         }}
                       />
                     </Text>
-                  </Pressable>
+                  </TouchableOpacity>
                 </View>
               </View>
             </View>

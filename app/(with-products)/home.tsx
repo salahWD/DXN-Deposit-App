@@ -1,4 +1,11 @@
-import { ScrollView, StyleSheet, View, Pressable, Text } from "react-native";
+import {
+  ScrollView,
+  StyleSheet,
+  View,
+  Pressable,
+  Text,
+  TouchableOpacity,
+} from "react-native";
 import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
 import { router } from "expo-router";
@@ -17,39 +24,40 @@ export default function HomeScreen() {
   const [depositPoints, setDepositPoints] = useState(0);
   const [depositAmount, setDepositAmount] = useState(0);
 
-  const squareData = [
+  const userPages = [
     {
       id: 0,
       title: "النقاط المؤجلة",
       color: "#9C27B0",
+      route: "/postponedPoints",
       value: depositPoints,
-      adminOnly: false,
     },
     {
       id: 1,
       title: "المنتجات الباقية",
       color: "#FF9800",
+      route: "/deposit",
       value: depositProductsCount,
-      adminOnly: false,
     },
     {
       id: 2,
-      title: "المبلغ المطلوب",
+      title: "الرصيد المالي",
       color: "#2196F3",
-      value: depositAmount + "TL",
-      adminOnly: false,
+      route: "/deptAmount",
+      value: -1 * depositAmount + "TL",
     },
     {
       id: 3,
       title: "طلب جديد",
       color: "#4CAF50",
+      route: "/order",
       value: "+",
-      adminOnly: false,
     },
     {
       id: 4,
       title: "سداد مبلغ",
       color: "#2196F3",
+      route: "/makeTransaction",
       value: (
         <Text
           style={{
@@ -60,41 +68,49 @@ export default function HomeScreen() {
           $
         </Text>
       ),
-      adminOnly: false,
     },
     {
       id: 5,
-      adminOnly: true,
+      title: "معاملاتي",
+      color: "#0B1D51",
+      route: "/actions",
+      value: "الأرشيف",
+    },
+  ];
+  const adminPages = [
+    {
+      id: 0,
       title: "طلبات تنزيل النقاط",
       color: "#7b0c8e",
+      route: "/PointsOrders",
       value: "خاص بالإدارة",
     },
     {
-      id: 6,
-      adminOnly: true,
+      id: 1,
       title: "طلبات المنتجات",
       color: "#e18600",
+      route: "/admin",
       value: "خاص بالإدارة",
     },
     {
-      id: 7,
-      adminOnly: true,
+      id: 2,
       title: "طلبات السداد",
       color: "darkblue",
+      route: "/TransactionsOrders",
       value: "خاص بالإدارة",
     },
     {
-      id: 8,
-      adminOnly: true,
+      id: 3,
       title: "التقارير",
       color: "darkgreen",
+      route: "/reports",
       value: "خاص بالإدارة",
     },
     {
-      id: 9,
-      adminOnly: true,
+      id: 4,
       title: "إدارة الودائع",
       color: "green",
+      route: "/depositManagement",
       value: "خاص بالإدارة",
     },
   ];
@@ -102,51 +118,34 @@ export default function HomeScreen() {
   const { products } = useProducts();
 
   const { isAdmin, userId, isLoading } = useAdminCheck();
+  console.log("from home, isAdmin => (", isAdmin, ") userId => (", userId, ")");
 
   useEffect(() => {
     const getStats = async () => {
-      if (userId) {
+      if (!userId || !products || products.length === 0 || isLoading) return;
+
+      try {
         const stats = await homePageStats(userId, products);
         if (stats) {
           setDepositProductsCount(stats.depositProductsCount);
           setDepositPoints(stats.postponedPoints);
           setDepositAmount(stats.depositAmount);
         }
-      } else {
-        console.log("there is no user id");
+      } catch (error) {
+        console.error("Failed to fetch stats:", error);
       }
     };
-    getStats();
-  }, [isLoading]);
 
-  const handleSquarePress = (route: number) => {
+    getStats();
+  }, [userId, products, isLoading]);
+
+  const handleSquarePress = (route: string) => {
     console.log(route, "route");
-    if (route == 0) {
-      router.replace("/postponedPoints");
-    } else if (route == 1) {
-      router.replace("/deposit");
-    } else if (route == 2) {
-      router.replace("/deptAmount");
-    } else if (route == 3) {
-      router.replace("/order");
-    } else if (route == 4) {
-      router.replace("/makeTransaction");
-    } else if (route == 5) {
-      router.replace("/PointsOrders");
-    } else if (route == 6) {
-      router.replace("/admin");
-    } else if (route == 7) {
-      router.replace("/TransactionsOrders");
-    } else if (route == 8) {
-      router.replace("/reports");
-    } else if (route == 9) {
-      router.replace("/depositManagement");
-    }
+    router.replace(route);
   };
 
   const logout = async () => {
     await AsyncStorage.removeItem("userId");
-    await AsyncStorage.removeItem("isAdmin");
     router.replace("/");
   };
 
@@ -176,38 +175,31 @@ export default function HomeScreen() {
           gap: 6,
         }}
       >
-        {squareData.map((item, index) => {
-          if (item.adminOnly && !isAdmin) return null;
-          return (
-            <View
-              key={index}
-              style={[styles.square, { backgroundColor: item.color }]}
-            >
-              <Pressable onPress={() => handleSquarePress(item.id)}>
-                <View style={{ alignItems: "center" }}>
-                  <ThemedText style={styles.squareText}>
-                    {item.title}
-                  </ThemedText>
-                  <ThemedText type="subtitle" style={styles.squareValue}>
-                    {item.value}
-                  </ThemedText>
-                </View>
-              </Pressable>
-            </View>
-          );
-        })}
+        {(!isAdmin ? userPages : adminPages).map((item, index) => (
+          <View
+            key={index}
+            style={[styles.square, { backgroundColor: item.color }]}
+          >
+            <Pressable onPress={() => handleSquarePress(item.route)}>
+              <View style={{ alignItems: "center" }}>
+                <ThemedText style={styles.squareText}>{item.title}</ThemedText>
+                <ThemedText type="subtitle" style={styles.squareValue}>
+                  {item.value}
+                </ThemedText>
+              </View>
+            </Pressable>
+          </View>
+        ))}
       </View>
-      <View
-        style={[
-          styles.square,
-          { width: "100%", minHeight: 60, backgroundColor: "red" },
-        ]}
-      >
-        <Pressable onPress={() => logout()}>
+      <View style={[styles.square, styles.logoutSquare]}>
+        <TouchableOpacity
+          onPress={() => logout()}
+          style={styles.logoutSquareTouchable}
+        >
           <View style={{ alignItems: "center" }}>
             <ThemedText style={styles.squareText}>تسجيل الخروج</ThemedText>
           </View>
-        </Pressable>
+        </TouchableOpacity>
       </View>
     </ScrollView>
   );
@@ -234,6 +226,21 @@ const styles = StyleSheet.create({
     marginBottom: 10,
     paddingVertical: 12,
     padding: 8,
+  },
+  logoutSquare: {
+    width: "100%",
+    minHeight: 60,
+    backgroundColor: "red",
+    padding: 0,
+    paddingVertical: 0,
+    overflow: "hidden",
+  },
+  logoutSquareTouchable: {
+    width: "100%",
+    height: "100%",
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
   },
   squareText: {
     color: "white",

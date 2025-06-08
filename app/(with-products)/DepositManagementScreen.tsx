@@ -23,14 +23,13 @@ import {
 import { useState, useEffect } from "react";
 import { router } from "expo-router";
 
-import { Deposit, DepositProduct, Transaction } from "@/utils/types";
+import { Deposit, DepositProduct } from "@/utils/types";
 
 import Icon from "react-native-vector-icons/MaterialCommunityIcons";
 import { ThemedView } from "@/components/ThemedView";
 import { ThemedText } from "@/components/ThemedText";
 import { useProducts } from "@/contexts/ProductContext";
-import { orderStatuses } from "@/utils/types";
-import SelectDropdown from "react-native-select-dropdown"; // Import SelectDropdown
+
 import React from "react";
 
 const DepositManagementScreen = () => {
