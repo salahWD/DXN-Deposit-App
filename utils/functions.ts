@@ -126,6 +126,50 @@ export const submitPointsOrder = async (
   return true;
 };
 
+export const AdminAddPoints = async (
+  adminId: string | number,
+  userId: string | number,
+  orderMemberId: string | number,
+  orderProducts: Order[]
+) => {
+  if (orderProducts.length === 0) {
+    alert("لم يتم اختيار اي منتجات!");
+    return false;
+  }
+
+  const userDepositRef = doc(db, "deposits", userId);
+
+  // Fetch current products in deposit
+  const depositSnap = await getDoc(userDepositRef);
+  let currentProducts: DepositProduct[] = [];
+  if (depositSnap.exists()) {
+    console.log("Deposit document exists, fetching products...");
+    currentProducts = depositSnap.data().products || [];
+  } else {
+    console.log("Deposit document does not exist, creating a new one...");
+    await setDoc(userDepositRef, { products: [] });
+  }
+
+  await updateDoc(doc(db, "deposits", userId), {
+    products: currentProducts,
+  });
+
+  await setDoc(doc(collection(db, `deposits/${userId}/actions`)), {
+    userId: userId,
+    adminId: adminId,
+    actionType: 3, // 1 => order approval | 2 => transaction approval | 3 => points approval | 4 => deposit products received
+    title: "تنزيل نقاط مؤجلة",
+    notes:
+      "تم الموافقة على طلب تنزيل نقاط للعضو (" +
+      orderMemberId +
+      ") والتي تحتوي على: \n " +
+      currentProducts.map((p) => `${p.title} (x${p.count})`).join("\n"),
+    created_at: new Date(),
+  });
+
+  return true;
+};
+
 export const approveOrder = async (
   order: Order,
   products: Product[],
@@ -373,7 +417,6 @@ export const approvePointsOrder = async (
 
 export const homePageStats = async (userId: string, products: any[]) => {
   const depositSnap = await getDoc(doc(db, "deposits", userId));
-  // const allProducts = await getProductsFromDB();
 
   let stats = {
     depositProductsCount: 0,

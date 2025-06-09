@@ -46,6 +46,15 @@ export default function RootLayout() {
           name="depositManagement"
           options={{ headerShown: false }}
         />
+        <Stack.Screen
+          name="depositPostponedPoints"
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen name="depositProducts" options={{ headerShown: false }} />
+        <Stack.Screen
+          name="depositTransactions"
+          options={{ headerShown: false }}
+        />
       </Stack>
       <StatusBar style="auto" />
     </ProductProvider>
