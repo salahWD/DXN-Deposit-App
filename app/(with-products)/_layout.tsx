@@ -36,7 +36,7 @@ export default function RootLayout() {
         <Stack.Screen name="deposit" options={{ headerShown: false }} />
         <Stack.Screen name="makeTransaction" options={{ headerShown: false }} />
         <Stack.Screen name="PointsOrders" options={{ headerShown: false }} />
-        <Stack.Screen name="reports" options={{ headerShown: false }} />
+        <Stack.Screen name="(reports)" options={{ headerShown: false }} />
         <Stack.Screen
           name="TransactionsOrders"
           options={{ headerShown: false }}

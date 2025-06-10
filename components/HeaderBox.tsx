@@ -7,12 +7,20 @@ import Icon from "react-native-vector-icons/MaterialCommunityIcons";
 import { ThemedView } from "./ThemedView";
 import { ThemedText } from "./ThemedText";
 
-export default function HeaderBox({ title }: { title: string }) {
+export default function HeaderBox({
+  title,
+  handleGoBack,
+}: {
+  title: string;
+  handleGoBack?: () => void;
+}) {
   const router = useRouter();
 
-  const handleGoBack = () => {
-    router.replace("/home");
-  };
+  if (!handleGoBack) {
+    handleGoBack = () => {
+      router.replace("/home");
+    };
+  }
 
   return (
     <ThemedView style={styles.content}>

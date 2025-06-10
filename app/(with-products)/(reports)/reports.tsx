@@ -11,6 +11,7 @@ import {
   Text,
   TextInput,
   Pressable,
+  BackHandler,
 } from "react-native";
 
 import React, { useEffect } from "react";
@@ -24,7 +25,7 @@ export default function Reports() {
   const [totalProducts, setTotalProducts] = useState(0);
   const [totalPoints, setTotalPoints] = useState(0);
 
-  const { isAdmin, userId, isLoading } = useAdminCheck();
+  const { isAdmin, isLoading } = useAdminCheck();
   const { products } = useProducts();
 
   useEffect(() => {
@@ -38,6 +39,21 @@ export default function Reports() {
     getStats();
   }, [isLoading]);
 
+  const handleRoute = (path: string) => () => {
+    if (!isAdmin) {
+      setError("ليس لديك صلاحية للوصول إلى هذه الصفحة");
+      return;
+    }
+    router.push(path);
+  };
+
+  const backAction = () => {
+    router.replace("/home");
+    return true;
+  };
+
+  BackHandler.addEventListener("hardwareBackPress", backAction);
+
   return (
     <ThemedView style={styles.squaresContainer}>
       <View style={styles.container}>
@@ -49,32 +65,38 @@ export default function Reports() {
         )}
         <ThemedView style={{ ...styles.content, paddingBottom: 12 }}>
           <View style={[styles.square, { backgroundColor: "brown" }]}>
-            <View style={{ alignItems: "center" }}>
-              <ThemedText style={styles.squareText}>كل الديون</ThemedText>
-              <ThemedText type="subtitle" style={styles.squareValue}>
-                {totalDept ? totalDept + " TL" : "لا يوجد دين"}
-              </ThemedText>
-            </View>
+            <TouchableOpacity onPress={handleRoute("/depts")}>
+              <View style={{ alignItems: "center" }}>
+                <ThemedText style={styles.squareText}>كل الديون</ThemedText>
+                <ThemedText type="subtitle" style={styles.squareValue}>
+                  {totalDept ? totalDept + " TL" : "لا يوجد دين"}
+                </ThemedText>
+              </View>
+            </TouchableOpacity>
           </View>
           <View style={[styles.square, { backgroundColor: "orange" }]}>
-            <View style={{ alignItems: "center" }}>
-              <ThemedText style={styles.squareText}>
-                كل المنتجات المتبقية
-              </ThemedText>
-              <ThemedText type="subtitle" style={styles.squareValue}>
-                {totalProducts ? totalProducts : "لا منتجات متبقية"}
-              </ThemedText>
-            </View>
+            <TouchableOpacity onPress={handleRoute("/depositProducts")}>
+              <View style={{ alignItems: "center" }}>
+                <ThemedText style={styles.squareText}>
+                  كل المنتجات المتبقية
+                </ThemedText>
+                <ThemedText type="subtitle" style={styles.squareValue}>
+                  {totalProducts ? totalProducts : "لا منتجات متبقية"}
+                </ThemedText>
+              </View>
+            </TouchableOpacity>
           </View>
           <View style={[styles.square, { backgroundColor: "darkblue" }]}>
-            <View style={{ alignItems: "center" }}>
-              <ThemedText style={styles.squareText}>
-                كل النقاط المعلقة
-              </ThemedText>
-              <ThemedText type="subtitle" style={styles.squareValue}>
-                {totalPoints ? totalPoints : "لا نقاط معلقة"}
-              </ThemedText>
-            </View>
+            <TouchableOpacity onPress={handleRoute("/points")}>
+              <View style={{ alignItems: "center" }}>
+                <ThemedText style={styles.squareText}>
+                  كل النقاط المعلقة
+                </ThemedText>
+                <ThemedText type="subtitle" style={styles.squareValue}>
+                  {totalPoints ? totalPoints : "لا نقاط معلقة"}
+                </ThemedText>
+              </View>
+            </TouchableOpacity>
           </View>
           {/* <ThemedView style={{ gap: 12 }}>
             <Text style={{ fontSize: 16, fontWeight: "600", color: "#374151" }}>

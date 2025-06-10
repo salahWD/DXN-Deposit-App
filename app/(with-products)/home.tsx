@@ -103,7 +103,7 @@ export default function HomeScreen() {
       id: 3,
       title: "التقارير",
       color: "darkgreen",
-      route: "/reports",
+      route: "/(reports)",
       value: "خاص بالإدارة",
     },
     {
