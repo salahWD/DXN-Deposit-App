@@ -1,7 +1,7 @@
 import { useState } from "react";
-import { submitTransaction } from "@/utils/functions";
+import { depositSubmitTransaction } from "@/utils/functions";
 import useAdminCheck from "@/contexts/useAdminCheck";
-import { router } from "expo-router";
+import { router, useLocalSearchParams } from "expo-router";
 
 import { ThemedView } from "@/components/ThemedView";
 import {
@@ -16,7 +16,8 @@ import React from "react";
 import HeaderBox from "@/components/HeaderBox";
 
 export default function MakeTransactionScreen() {
-  const { userId } = useAdminCheck();
+  const { userId, currentDeptAmount } = useLocalSearchParams();
+  const { userId: adminId } = useAdminCheck();
 
   const [loading, setLoading] = useState(false);
   const [amount, setAmount] = useState("");
@@ -32,16 +33,17 @@ export default function MakeTransactionScreen() {
     setLoading(true);
     setError("");
     const makeTransactionOrder = async () => {
-      const res = await submitTransaction(
-        userId,
+      const res = await depositSubmitTransaction(
+        userId as string,
+        adminId,
         parseFloat(amount),
         note || ""
       );
       if (res) {
-        alert("تم تقديم طلب السداد!");
+        alert("تم تعديل الرصيد!");
         router.replace("/home");
       } else {
-        console.log("خطأ في تقديم الطلب");
+        console.log("خطأ في تعديل الرصيد");
       }
     };
     makeTransactionOrder();
@@ -50,7 +52,7 @@ export default function MakeTransactionScreen() {
   return (
     <ThemedView style={styles.squaresContainer}>
       <View style={styles.container}>
-        <HeaderBox title="طلب سداد" />
+        <HeaderBox title="إضافة مبلغ" />
         {error && (
           <ThemedView style={{ ...styles.content, paddingBottom: 12 }}>
             <Text style={styles.error}>{error}</Text>
@@ -58,7 +60,25 @@ export default function MakeTransactionScreen() {
         )}
         <ThemedView style={{ ...styles.content, paddingBottom: 12 }}>
           <ThemedView style={{ gap: 12 }}>
-            <Text style={{ fontSize: 16, fontWeight: "600", color: "#374151" }}>
+            <Text
+              style={{
+                textAlign: "center",
+                fontSize: 16,
+                marginBottom: 8,
+                fontWeight: "600",
+                color: "#374151",
+              }}
+            >
+              الرصيد الحالي ( {currentDeptAmount}TL )
+            </Text>
+            <Text
+              style={{
+                textAlign: "right",
+                fontSize: 16,
+                fontWeight: "600",
+                color: "#374151",
+              }}
+            >
               المبلغ المطلوب (TL)
             </Text>
             <TextInput

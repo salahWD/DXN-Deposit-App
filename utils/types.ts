@@ -41,7 +41,7 @@ export type Deposit = {
 
 export type DepositProduct = {
   points: boolean;
-  id: string | number;
+  id: string;
   title: string;
   count: number;
   received: boolean;

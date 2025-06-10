@@ -1,24 +1,53 @@
-import { useState } from "react";
-import { StyleSheet, View, Pressable, Text, Modal } from "react-native";
+import { useEffect, useState } from "react";
+import { StyleSheet, View, Text, TouchableOpacity } from "react-native";
 import { ThemedView } from "@/components/ThemedView";
 import DepositProductListing from "@/components/DepositProductListing";
 
 import Icon from "react-native-vector-icons/MaterialCommunityIcons";
 
 import { router, useLocalSearchParams } from "expo-router";
-import { AdminAddPoints, submitPointsOrder } from "@/utils/functions";
-import { Order, Product } from "@/utils/types";
+import { AdminAddPoints } from "@/utils/functions";
+import { DepositProduct, Order, Product } from "@/utils/types";
 import React from "react";
-import OrderForm from "@/components/OrderForm";
 import HeaderBox from "@/components/HeaderBox";
+import useAdminCheck from "@/contexts/useAdminCheck";
+import { db } from "@/firebaseConfig";
+import { doc, getDoc } from "firebase/firestore";
 
 export default function DepositPostponedPointsScreen() {
   const { userId } = useLocalSearchParams();
-  console.log(userId, "userId in DepositPostponedPointsScreen");
+  const { userId: adminId } = useAdminCheck();
+
   const [orderProducts, setOrderProducts] = useState<Order[]>([]); // Array of {id, title, count}
   const [resetKey, setResetKey] = useState(0);
-  const [isModalVisible, setIsModalVisible] = useState(false);
-  const [sendRequestLoading, setSendRequestLoading] = useState(false);
+  const [isButtonLoading, setIsButtonLoading] = useState(false);
+
+  const [depositProducts, setDepositProducts] = useState<DepositProduct[]>([]);
+
+  useEffect(() => {
+    const getDepositProducts = async () => {
+      if (!userId) {
+        console.log("Error: no user ID is found");
+        return;
+      }
+
+      try {
+        const depositRef = doc(db, "deposits", userId);
+        const snapshot = await getDoc(depositRef);
+
+        if (snapshot.exists()) {
+          const data = snapshot.data();
+          setDepositProducts(data.products || []);
+        } else {
+          setDepositProducts([]);
+        }
+      } catch (error) {
+        console.error("Error fetching deposit:", error);
+      }
+    };
+
+    getDepositProducts();
+  }, [userId]);
 
   const handleChangedOrder = (product: Product, count: number) => {
     setOrderProducts((prev) => {
@@ -39,35 +68,22 @@ export default function DepositPostponedPointsScreen() {
     });
   };
 
-  const handleAddPoints = async (orderMemberId: string) => {
+  const handleSavePoints = async () => {
+    if (isButtonLoading) return;
+    setIsButtonLoading(true);
+
     if (userId && typeof userId == "string") {
-      if (!sendRequestLoading) {
-        setSendRequestLoading(true);
-        const res = await AdminAddPoints(
-          userId,
-          userId,
-          orderMemberId,
-          orderProducts
-        );
-        setOrderProducts([]);
-        setResetKey((prev) => prev + 1);
-        if (res) {
-          setSendRequestLoading(false);
-          router.replace("/home");
-        }
+      const res = await AdminAddPoints(adminId, userId, orderProducts);
+      if (res) {
+        router.replace("/home");
       }
+      setOrderProducts([]);
+      setResetKey((prev) => prev + 1);
+      setIsButtonLoading(false);
     } else {
       console.log("no user id please select a valid user");
       router.replace("/");
     }
-  };
-
-  const handleOpenModal = () => {
-    setIsModalVisible(true);
-  };
-
-  const handleCloseModal = () => {
-    setIsModalVisible(false);
   };
 
   return (
@@ -76,15 +92,15 @@ export default function DepositPostponedPointsScreen() {
 
       <ThemedView style={styles.container}>
         <DepositProductListing
-          userId={userId as string}
           updateOrder={handleChangedOrder}
           resetKey={resetKey}
+          availableProducts={depositProducts}
         />
       </ThemedView>
 
       <ThemedView style={styles.buttonContainer}>
         <View>
-          <Pressable onPress={handleOpenModal}>
+          <TouchableOpacity onPress={handleSavePoints}>
             <View
               style={{
                 width: "100%",
@@ -100,33 +116,10 @@ export default function DepositPostponedPointsScreen() {
             >
               <Icon name="cart-outline" style={{ fontSize: 25 }} />
               <Text style={{ fontSize: 18, fontWeight: "bold" }}>
-                تنزيل نقاط مؤجلة
+                حفظ النقاط
               </Text>
             </View>
-          </Pressable>
-          <Modal
-            visible={isModalVisible}
-            transparent={true}
-            animationType="fade"
-            onRequestClose={handleCloseModal}
-            hardwareAccelerated={true}
-            presentationStyle="overFullScreen"
-            statusBarTranslucent={true}
-            supportedOrientations={["portrait", "landscape"]}
-            onDismiss={handleCloseModal}
-          >
-            <View style={styles.modalOverlay}>
-              <View style={styles.modalContent}>
-                <OrderForm
-                  onSubmit={(value) => {
-                    console.log("Form submitted with value:", value);
-                    handleAddPoints(value);
-                    handleCloseModal();
-                  }}
-                />
-              </View>
-            </View>
-          </Modal>
+          </TouchableOpacity>
         </View>
       </ThemedView>
     </ThemedView>

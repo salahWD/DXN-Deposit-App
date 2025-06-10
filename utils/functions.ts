@@ -126,49 +126,138 @@ export const submitPointsOrder = async (
   return true;
 };
 
-export const AdminAddPoints = async (
-  adminId: string | number,
-  userId: string | number,
-  orderMemberId: string | number,
-  orderProducts: Order[]
+/* export const AdminAddPoints = async (
+  adminId: string,
+  userId: string,
+  updatedProducts: Order[]
 ) => {
-  if (orderProducts.length === 0) {
-    alert("لم يتم اختيار اي منتجات!");
-    return false;
-  }
+  console.log(updatedProducts, "<== updatedProducts");
+
+  // Filter out products with count <= 0 (removal)
+  const filteredProducts = updatedProducts.filter((product) => product.count > 0);
 
   const userDepositRef = doc(db, "deposits", userId);
 
-  // Fetch current products in deposit
-  const depositSnap = await getDoc(userDepositRef);
-  let currentProducts: DepositProduct[] = [];
-  if (depositSnap.exists()) {
-    console.log("Deposit document exists, fetching products...");
-    currentProducts = depositSnap.data().products || [];
-  } else {
-    console.log("Deposit document does not exist, creating a new one...");
-    await setDoc(userDepositRef, { products: [] });
-  }
+  // Save the final filtered list to Firestore (even if empty)
+  await setDoc(userDepositRef, {
+    products: filteredProducts,
+  }, { merge: true });
 
-  await updateDoc(doc(db, "deposits", userId), {
-    products: currentProducts,
-  });
-
-  await setDoc(doc(collection(db, `deposits/${userId}/actions`)), {
-    userId: userId,
-    adminId: adminId,
+  // Log the admin action for auditing
+  await addDoc(collection(db, `deposits/${userId}/actions`), {
+    userId,
+    adminId,
     actionType: 3, // 1 => order approval | 2 => transaction approval | 3 => points approval | 4 => deposit products received
-    title: "تنزيل نقاط مؤجلة",
+    title: "تحديث نقاط الإيداع",
     notes:
-      "تم الموافقة على طلب تنزيل نقاط للعضو (" +
-      orderMemberId +
-      ") والتي تحتوي على: \n " +
-      currentProducts.map((p) => `${p.title} (x${p.count})`).join("\n"),
+      filteredProducts.length > 0
+        ? "تم تحديث النقاط بواسطة المشرف:\n" +
+          filteredProducts.map((p) => `${p.title} (x${p.count})`).join("\n")
+        : "تمت إزالة جميع النقاط المؤجلة بواسطة المشرف.",
     created_at: new Date(),
   });
 
+  alert("تم حفظ المنتجات بنجاح!");
+  return true;
+}; */
+
+
+export const AdminAddPoints = async (
+  adminId: string,
+  userId: string,
+  updatedList: DepositProduct[] // The new admin-provided final product list
+) => {
+  const userDepositRef = doc(db, "deposits", userId);
+  const depositSnap = await getDoc(userDepositRef);
+
+  let currentProducts: DepositProduct[] = depositSnap.exists()
+    ? depositSnap.data().products || []
+    : [];
+
+  const finalProducts: DepositProduct[] = [];
+
+  // Group current and updated by product ID
+  const groupById = (list: DepositProduct[]) =>
+    list.reduce((acc, p) => {
+      if (!acc[p.id]) acc[p.id] = [];
+      acc[p.id].push({ ...p });
+      return acc;
+    }, {} as Record<string | number, DepositProduct[]>);
+
+  const currentMap = groupById(currentProducts);
+  const updatedMap = groupById(updatedList);
+
+  for (const id in updatedMap) {
+    const updated = updatedMap[id][0]; // admin version (only one per product)
+    const existing = currentMap[id] || [];
+
+    const totalCurrentCount = existing.reduce((sum, p) => sum + p.count, 0);
+    const diff = updated.count - totalCurrentCount;
+
+    if (diff === 0) {
+      // No change, just preserve current entries
+      finalProducts.push(...existing);
+    } else if (diff < 0) {
+      // Decrease: remove from unreceived first
+      let remaining = updated.count;
+
+      const sorted = [...existing].sort((a, b) =>
+        a.received === b.received ? 0 : a.received ? 1 : -1
+      ); // prioritize unreceived first
+
+      for (const p of sorted) {
+        if (remaining <= 0) break;
+        const copy = { ...p };
+        if (copy.count <= remaining) {
+          finalProducts.push({ ...copy });
+          remaining -= copy.count;
+        } else {
+          finalProducts.push({ ...copy, count: remaining });
+          remaining = 0;
+        }
+      }
+    } else {
+      // Increase: keep old and add new unreceived for the diff
+      finalProducts.push(...existing);
+      finalProducts.push({
+        id: updated.id,
+        title: updated.title,
+        count: diff,
+        received: false,
+        points: updated.points ?? false,
+      });
+    }
+  }
+
+  // Also keep current products that were completely removed by admin
+  const removedIds = Object.keys(currentMap).filter((id) => !(id in updatedMap));
+  for (const id of removedIds) {
+    // Completely removed: do not push anything
+  }
+
+  // Save to Firestore
+  await setDoc(userDepositRef, {
+    products: finalProducts,
+  }, { merge: true });
+
+  // Audit log
+  await addDoc(collection(db, `deposits/${userId}/actions`), {
+    userId,
+    adminId,
+    actionType: 3,
+    title: "تحديث نقاط الإيداع",
+    notes:
+      finalProducts.length > 0
+        ? "تم تحديث منتجات الإيداع:\n" +
+          finalProducts.map((p) => `${p.title} (x${p.count}) - ${p.received ? "تم استلامه" : "لم يستلم"}`).join("\n")
+        : "تمت إزالة جميع منتجات الإيداع.",
+    created_at: new Date(),
+  });
+
+  alert("تم حفظ المنتجات بنجاح!");
   return true;
 };
+
 
 export const approveOrder = async (
   order: Order,
@@ -442,6 +531,8 @@ export const homePageStats = async (userId: string, products: any[]) => {
     stats.postponedPoints =
       Math.ceil(
         depositProducts.reduce((value: number, prod: DepositProduct) => {
+          console.log(value, "<== value");
+          console.log(prod, "<== prod");
           if (prod.received && !prod.points) {
             value +=
               products.find((item, indx) => item.id == prod.id)?.points *
@@ -725,14 +816,7 @@ export async function fetchUserDepositAndOrders(
           return acc;
         }, {} as Record<string | number, number>)
       );
-      console.log(
-        combinedProducts.reduce((acc, prod) => {
-          if (!prod.received) {
-            acc[prod.id as string | number] = prod.count > 0 ? prod.count : 0;
-          }
-          return acc;
-        }, {} as Record<string | number, number>)
-      );
+      
       onError(null);
     } else {
       onProductsChange([]);
@@ -742,6 +826,56 @@ export async function fetchUserDepositAndOrders(
     console.error("Error fetching deposit or orders:", error);
     onError("غير متصل بالإنترنت أو حدث خطأ. حاول لاحقًا.");
     onProductsChange([]);
+  } finally {
+    onLoadingChange(false);
+  }
+}
+
+export async function adminFetchUserDepositAndOrders(
+  userId: string,
+  setProducts: (selectedProducts: DepositProduct[]) => void,
+  setSelectedProducts: (selectedProducts: DepositProduct[]) => void,
+  onError: (error: string | null) => void,
+  onLoadingChange: (loading: boolean) => void
+): Promise<void> {
+  try {
+    onLoadingChange(true);
+
+    const depositDocRef = doc(db, "deposits", userId);
+    const depositDocSnap = await getDoc(depositDocRef);
+
+    let userProducts: DepositProduct[] = [];
+
+    if (depositDocSnap.exists()) {
+      const depositData = depositDocSnap.data();
+      if (depositData.products && Array.isArray(depositData.products)) {
+        userProducts = depositData.products.map((p) => ({
+          ...p,
+          received: p.received ?? false,
+        }));
+      }
+    }
+
+    if (userProducts.length > 0) {
+
+      setProducts(userProducts);
+
+      setSelectedProducts(
+        userProducts
+          .filter((prod) => !prod.received)
+          .map((prod) => ({
+            ...prod,
+            received: false,
+          }))
+      );
+
+      onError(null);
+    } else {
+      onError("لا توجد منتجات في وديعتك حاليًا");
+    }
+  } catch (error) {
+    console.error("Error fetching deposit or orders:", error);
+    onError("غير متصل بالإنترنت أو حدث خطأ. حاول لاحقًا.");
   } finally {
     onLoadingChange(false);
   }
@@ -774,6 +908,66 @@ export async function markProductsAsReceived(
     throw error;
   }
 }
+
+export async function adminMarkProductsAsReceived(
+  userId: string,
+  adminId: string,
+  updatedProducts: DepositProduct[],
+): Promise<boolean | void> {
+  try {
+    const depositRef = doc(db, "deposits", userId);
+    const depositSnap = await getDoc(depositRef);
+
+    if (!depositSnap.exists()) {
+      throw new Error("Deposit document not found.");
+    }
+
+    const currentProducts: DepositProduct[] = depositSnap.data().products || [];
+
+    const changedProducts = updatedProducts.reduce<{ id: string; count: number; title: string }[]>(
+      (diffs, updated) => {
+        const current = currentProducts.find((p) => p.id === updated.id);
+        if (!current || current.count !== updated.count) {
+          diffs.push({
+            id: updated.id,
+            count: updated.count,
+            title: updated.title,
+          });
+        }
+        return diffs;
+      },
+      [],
+    );
+
+    const normalizedProducts = updatedProducts.map((prod) => ({
+      ...prod,
+      received: false,
+    }));
+
+    await updateDoc(depositRef, {
+      products: normalizedProducts,
+    });
+
+    await setDoc(doc(collection(db, `deposits/${userId}/actions`)), {
+      adminId,
+      actionType: 4,
+      title: "تعديل منتجات الوديعة",
+      products: updatedProducts.map((p) => ({
+        ...p,
+        received: false,
+      })),
+      notes: `تم تعديل المنتجات غير المستلمة التالية:\n${changedProducts.map((p) => `${p.title} (x${p.count})`).join("\n")}`,
+      created_at: new Date(),
+    });
+
+    console.log("Products updated and changes logged successfully.");
+    return true;
+  } catch (error) {
+    console.error("Error updating Firestore products:", error);
+    throw error;
+  }
+}
+
 
 export async function fetchUserAccountStatement(
   userId: string,
@@ -893,6 +1087,55 @@ export async function submitTransaction(
     note: note || "",
     created_at: new Date(),
   });
+  return true;
+}
+
+export async function depositSubmitTransaction(
+  userId: string,
+  adminId: string,
+  amount: number,
+  note?: string
+) {
+  const depositRef = doc(db, "deposits", userId);
+  const depositSnap = await getDoc(depositRef);
+
+  if (typeof amount != "number") {
+    alert("البلغ غير صحيح");
+    return false;
+  }
+
+  if (!depositSnap.exists()) {
+    alert("الحساب المطلوب تعديله غير موجود");
+    return false;
+  }
+
+  const transactionOrder = {
+    adminId,
+    amount: amount,
+    note: note || "",
+    created_at: new Date(),
+  };
+  const depositDeptAmount = depositSnap.data()?.deptAmount || 0;
+  const newDeptAmount = depositDeptAmount + transactionOrder.amount;
+
+  const userTransactionRef = doc(
+    collection(db, `deposits/${userId}/transactions`)
+  );
+
+  await setDoc(userTransactionRef, transactionOrder);
+  await updateDoc(depositRef, { deptAmount: newDeptAmount });
+
+  await setDoc(doc(collection(db, `deposits/${userId}/actions`)), {
+    userId,
+    adminId,
+    actionType: 2, // 1 => order approval | 2 => transaction approval | 3 => points approval | 4 => deposit products received
+    title: "تعديل الرصيد المالي",
+    amount: transactionOrder.amount,
+    notes: `تم التعديل على الرصيد المالي بواسطة ${adminId} وتم ${transactionOrder.amount > 0 ? "اضافة" : "خصم"} مبلغ (${transactionOrder.amount} TL) ${transactionOrder.amount > 0 ? "الى" : "من"} رصيدك`,
+    created_at: new Date(),
+  });
+
+  alert("تم قبول السداد!");
   return true;
 }
 

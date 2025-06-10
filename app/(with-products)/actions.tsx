@@ -94,7 +94,7 @@ export default function DeptAmount() {
                 }}
                 data={item?.products}
                 renderItem={({ item }) => {
-                  return <Text>{`\u2022 ${item.title}`}</Text>;
+                  return <Text>{`\u2022 ${item.title} (x${item.count})`}</Text>;
                 }}
               />
             )}
@@ -114,7 +114,13 @@ export default function DeptAmount() {
                   ملاحظة:
                 </Text>
                 {item?.notes && (
-                  <Text style={{ textAlign: "right", paddingRight: 12 }}>
+                  <Text
+                    style={{
+                      textAlign: "right",
+                      lineHeight: 20,
+                      paddingRight: 12,
+                    }}
+                  >
                     {item.notes}
                   </Text>
                 )}

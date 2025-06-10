@@ -41,11 +41,16 @@ const DepositManagementScreen = () => {
     const loadStats = async () => {
       if (expandedUserId && !userStats[expandedUserId]) {
         const stats = await homePageStats(expandedUserId, products);
+        console.log(stats);
         setUserStats((prev) => ({ ...prev, [expandedUserId]: stats }));
       }
     };
     loadStats();
   }, [expandedUserId]);
+
+  useEffect(() => {
+    console.log(userStats, "userStats");
+  }, [userStats]);
 
   const navigateToPage = (page: string, data: Record<string, any>) => {
     const query = new URLSearchParams(data).toString();
@@ -83,7 +88,7 @@ const DepositManagementScreen = () => {
                     النقاط المؤجلة
                   </ThemedText>
                   <ThemedText type="subtitle" style={styles.squareValue}>
-                    {stats.depositProductsCount}
+                    {stats.postponedPoints}
                   </ThemedText>
                 </View>
               </TouchableOpacity>
@@ -99,7 +104,7 @@ const DepositManagementScreen = () => {
                     المنتجات الباقية
                   </ThemedText>
                   <ThemedText type="subtitle" style={styles.squareValue}>
-                    {stats.postponedPoints}
+                    {stats.depositProductsCount}
                   </ThemedText>
                 </View>
               </TouchableOpacity>
@@ -109,6 +114,7 @@ const DepositManagementScreen = () => {
                 onPress={() =>
                   navigateToPage("/depositTransactions", {
                     userId: deposit.userId,
+                    currentDeptAmount: stats.depositAmount,
                   })
                 }
               >
