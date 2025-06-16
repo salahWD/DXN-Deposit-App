@@ -1,7 +1,5 @@
 import { useState } from "react";
-import { getReportStats } from "@/utils/functions";
-import useAdminCheck from "@/contexts/useAdminCheck";
-import { router } from "expo-router";
+import { router, useLocalSearchParams } from "expo-router";
 
 import { ThemedView } from "@/components/ThemedView";
 import {
@@ -12,44 +10,119 @@ import {
   TextInput,
   Pressable,
   BackHandler,
+  ScrollView,
 } from "react-native";
 
 import React, { useEffect } from "react";
 import HeaderBox from "@/components/HeaderBox";
 import { useProducts } from "@/contexts/ProductContext";
+import { ThemedText } from "@/components/ThemedText";
 
 export default function Reports() {
   const [error, setError] = useState("");
-  // const [totalDept, setTotalDept] = useState(0);
-  // const [totalProducts, setTotalProducts] = useState(0);
-  // const [totalPoints, setTotalPoints] = useState(0);
-
-  const { isLoading } = useAdminCheck();
+  const [deposits, setDeposits] = useState<any[]>([]);
+  // const [depositProducts, setDepositProducts] = useState(0);
   const { products } = useProducts();
+  const { data } = useLocalSearchParams();
 
-  const backAction = () => {
-    router.replace("/(reports)");
-    return true;
-  };
+  useEffect(() => {
+    if (data) {
+      try {
+        const parsedData = JSON.parse(data as string);
+        setDeposits(parsedData);
+        console.log("Received deposits:", parsedData);
+      } catch (e) {
+        console.error("Failed to parse passed data:", e);
+      }
+    }
+  }, [data]);
 
-  BackHandler.addEventListener("hardwareBackPress", backAction);
+  useEffect(() => {
+    const backAction = () => {
+      router.replace("/(reports)");
+      return true;
+    };
+
+    BackHandler.addEventListener("hardwareBackPress", backAction);
+    return () =>
+      BackHandler.removeEventListener("hardwareBackPress", backAction);
+  }, []);
+
+  const handleFilterPress = (value) => {};
 
   return (
     <ThemedView style={styles.squaresContainer}>
       <View style={styles.container}>
-        <HeaderBox title="التقارير" />
+        <HeaderBox
+          title="المنتجات المتبقية"
+          handleGoBack={() => {
+            router.replace("/(reports)");
+          }}
+        />
         {error && (
           <ThemedView style={{ ...styles.content, paddingBottom: 12 }}>
             <Text style={styles.error}>{error}</Text>
           </ThemedView>
         )}
-        <ThemedView style={{ ...styles.content, paddingBottom: 12 }}>
-          <ThemedView style={{ gap: 12 }}>
-            <Text style={{ fontSize: 16, fontWeight: "600", color: "#374151" }}>
-              deposit products
-            </Text>
-          </ThemedView>
-        </ThemedView>
+        <View
+          style={{
+            ...styles.content,
+            flexDirection: "row",
+            flexWrap: "wrap",
+            gap: 6,
+          }}
+        >
+          <View style={styles.square}>
+            <Pressable onPress={() => handleFilterPress(true)}>
+              <View style={{ alignItems: "center" }}>
+                <ThemedText style={styles.squareText}>حسب المستخدم</ThemedText>
+              </View>
+            </Pressable>
+          </View>
+          <View style={styles.square}>
+            <Pressable onPress={() => handleFilterPress(false)}>
+              <View style={{ alignItems: "center" }}>
+                <Text style={styles.squareText}>حسب المنتج</Text>
+              </View>
+            </Pressable>
+          </View>
+        </View>
+        {/* <ScrollView
+          style={styles.content}
+          contentContainerStyle={{ paddingBottom: 45 }}
+        >
+          {deposits.map((user, idx) => (
+            <View key={idx} style={{ marginBottom: 12 }}>
+              <View style={styles.card}>
+                <Text style={styles.title}>المستخدم: {user.id}</Text>
+                <Text style={styles.price}>
+                  {(user?.products && user.products.length) || 0}
+                  <Text style={{ fontSize: 10 }}> منتج </Text>
+                </Text>
+              </View>
+            </View>
+          ))}
+          <View>
+            <View
+              style={{
+                ...styles.card,
+                paddingVertical: 16,
+                paddingHorizontal: 14,
+                backgroundColor: "#cfcfcf",
+              }}
+            >
+              <Text style={styles.title}>الإجمالي:</Text>
+              <Text style={styles.price}>
+                {deposits.reduce((total, user) => {
+                  if (!user?.products || user?.products?.length <= 0)
+                    return total;
+                  return total + user.products.length;
+                }, 0)}
+                <Text style={{ fontSize: 10 }}> منتج </Text>
+              </Text>
+            </View>
+          </View>
+        </ScrollView> */}
       </View>
     </ThemedView>
   );
@@ -63,7 +136,10 @@ const styles = StyleSheet.create({
   },
   container: { height: "100%", width: "100%" },
   content: {
+    flex: 1,
     padding: 32,
+    paddingTop: 12,
+    paddingBottom: 0,
     gap: 16,
     overflow: "hidden",
   },
@@ -80,10 +156,12 @@ const styles = StyleSheet.create({
   },
   square: {
     minHeight: 110,
+    flex: 1,
     justifyContent: "center",
     alignItems: "center",
     borderRadius: 10,
     marginBottom: 10,
+    backgroundColor: "white",
     paddingVertical: 12,
     padding: 8,
   },
@@ -94,4 +172,25 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
   },
   squareValue: { color: "white", opacity: 0.75, marginTop: 10, fontSize: 14 },
+
+  card: {
+    flexDirection: "row-reverse",
+    justifyContent: "space-between",
+    backgroundColor: "#fff",
+    borderRadius: 8,
+    padding: 8,
+    borderColor: "#e0e0e0",
+    borderWidth: 1,
+    alignItems: "center",
+  },
+  title: {
+    marginLeft: 7,
+    textAlign: "right",
+    fontWeight: "bold",
+    fontSize: 14,
+  },
+  price: {
+    fontSize: 14,
+    color: "#000",
+  },
 });

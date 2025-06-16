@@ -1,7 +1,6 @@
 import { useState } from "react";
-import { getReportStats } from "@/utils/functions";
-import useAdminCheck from "@/contexts/useAdminCheck";
-import { router } from "expo-router";
+import { getAllUsersDebts } from "@/utils/functions";
+import { router, useLocalSearchParams } from "expo-router";
 
 import { ThemedView } from "@/components/ThemedView";
 import {
@@ -12,6 +11,7 @@ import {
   TextInput,
   Pressable,
   BackHandler,
+  ScrollView,
 } from "react-native";
 
 import React, { useEffect } from "react";
@@ -20,19 +20,43 @@ import { useProducts } from "@/contexts/ProductContext";
 
 export default function Reports() {
   const [error, setError] = useState("");
-  // const [totalDept, setTotalDept] = useState(0);
-  // const [totalProducts, setTotalProducts] = useState(0);
-  // const [totalPoints, setTotalPoints] = useState(0);
-
-  const { isLoading } = useAdminCheck();
+  const [debts, setDebts] = useState<any[]>([]);
+  const [totalDebts, setTotalDebts] = useState(0);
   const { products } = useProducts();
+  const { data } = useLocalSearchParams();
 
-  const backAction = () => {
-    router.replace("/(reports)");
-    return true;
-  };
+  useEffect(() => {
+    if (data) {
+      console.log(data);
+      try {
+        const parsedData = JSON.parse(data as string);
+        setDebts(parsedData);
+        setTotalDebts(
+          parsedData.reduce(
+            (total: number, current: { deptAmount: number }) => {
+              if (current.deptAmount < 0) return total;
+              return total + current.deptAmount;
+            },
+            0
+          ) || 0
+        );
+        console.log("Received debts:", parsedData);
+      } catch (e) {
+        console.error("Failed to parse passed data:", e);
+      }
+    }
+  }, [data]);
 
-  BackHandler.addEventListener("hardwareBackPress", backAction);
+  useEffect(() => {
+    const backAction = () => {
+      router.replace("/(reports)");
+      return true;
+    };
+
+    BackHandler.addEventListener("hardwareBackPress", backAction);
+    return () =>
+      BackHandler.removeEventListener("hardwareBackPress", backAction);
+  }, []);
 
   return (
     <ThemedView style={styles.squaresContainer}>
@@ -49,11 +73,35 @@ export default function Reports() {
           </ThemedView>
         )}
         <ThemedView style={{ ...styles.content, paddingBottom: 12 }}>
-          <ThemedView style={{ gap: 12 }}>
-            <Text style={{ fontSize: 16, fontWeight: "600", color: "#374151" }}>
-              المبلغ المطلوب (TL)
-            </Text>
-          </ThemedView>
+          <ScrollView>
+            {debts.map((user, idx) => (
+              <View key={idx} style={{ marginBottom: 12 }}>
+                <View style={styles.card}>
+                  <Text style={styles.title}>المستخدم: {user.id}</Text>
+                  <Text style={styles.price}>
+                    {user.deptAmount * -1}
+                    <Text style={{ fontSize: 10 }}> TL</Text>
+                  </Text>
+                </View>
+              </View>
+            ))}
+            <View>
+              <View
+                style={{
+                  ...styles.card,
+                  paddingVertical: 16,
+                  paddingHorizontal: 14,
+                  backgroundColor: "#cfcfcf",
+                }}
+              >
+                <Text style={styles.title}>الإجمالي:</Text>
+                <Text style={styles.price}>
+                  {totalDebts * -1}
+                  <Text style={{ fontSize: 10 }}> TL</Text>
+                </Text>
+              </View>
+            </View>
+          </ScrollView>
         </ThemedView>
       </View>
     </ThemedView>
@@ -99,4 +147,25 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
   },
   squareValue: { color: "white", opacity: 0.75, marginTop: 10, fontSize: 14 },
+
+  card: {
+    flexDirection: "row-reverse",
+    justifyContent: "space-between",
+    backgroundColor: "#fff",
+    borderRadius: 8,
+    padding: 8,
+    borderColor: "#e0e0e0",
+    borderWidth: 1,
+    alignItems: "center",
+  },
+  title: {
+    marginLeft: 7,
+    textAlign: "right",
+    fontWeight: "bold",
+    fontSize: 14,
+  },
+  price: {
+    fontSize: 14,
+    color: "#000",
+  },
 });

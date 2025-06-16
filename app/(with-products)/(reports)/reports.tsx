@@ -18,33 +18,52 @@ import React, { useEffect } from "react";
 import HeaderBox from "@/components/HeaderBox";
 import { ThemedText } from "@/components/ThemedText";
 import { useProducts } from "@/contexts/ProductContext";
+import { DepositProduct } from "@/utils/types";
 
 export default function Reports() {
   const [error, setError] = useState("");
   const [totalDept, setTotalDept] = useState(0);
   const [totalProducts, setTotalProducts] = useState(0);
   const [totalPoints, setTotalPoints] = useState(0);
+  const [loaded, setLoaded] = useState(false);
+  const [deptsDetails, setDeptsDetails] = useState<
+    { id: string; deptAmount: number }[]
+  >([]);
+  const [productsDetails, setProductsDetails] = useState<
+    { id: string; products: DepositProduct[] }[]
+  >([]);
 
   const { isAdmin, isLoading } = useAdminCheck();
   const { products } = useProducts();
 
   useEffect(() => {
     const getStats = async () => {
-      const { totalDeptAmount, totalProducts, totalPoints } =
-        await getReportStats(products);
+      const {
+        totalDeptAmount,
+        totalProducts,
+        totalPoints,
+        deptsDetails,
+        productsDetails,
+      } = await getReportStats(products);
       setTotalDept(totalDeptAmount);
       setTotalProducts(totalProducts);
       setTotalPoints(totalPoints);
+      setDeptsDetails(deptsDetails);
+      setProductsDetails(productsDetails);
+      setLoaded(true);
     };
     getStats();
   }, [isLoading]);
 
-  const handleRoute = (path: string) => () => {
+  const handleRoute = (path: string, data: Record<string, any>) => () => {
     if (!isAdmin) {
       setError("ليس لديك صلاحية للوصول إلى هذه الصفحة");
       return;
     }
-    router.push(path);
+    const query = new URLSearchParams({
+      data: JSON.stringify(data),
+    }).toString();
+    router.push(`${path}?${query}`);
   };
 
   const backAction = () => {
@@ -65,17 +84,23 @@ export default function Reports() {
         )}
         <ThemedView style={{ ...styles.content, paddingBottom: 12 }}>
           <View style={[styles.square, { backgroundColor: "brown" }]}>
-            <TouchableOpacity onPress={handleRoute("/depts")}>
+            <TouchableOpacity
+              disabled={!loaded}
+              onPress={handleRoute("/depts", deptsDetails)}
+            >
               <View style={{ alignItems: "center" }}>
                 <ThemedText style={styles.squareText}>كل الديون</ThemedText>
                 <ThemedText type="subtitle" style={styles.squareValue}>
-                  {totalDept ? totalDept + " TL" : "لا يوجد دين"}
+                  {totalDept ? Math.round(totalDept) + " TL" : "لا يوجد دين"}
                 </ThemedText>
               </View>
             </TouchableOpacity>
           </View>
           <View style={[styles.square, { backgroundColor: "orange" }]}>
-            <TouchableOpacity onPress={handleRoute("/depositProducts")}>
+            <TouchableOpacity
+              disabled={!loaded}
+              onPress={handleRoute("/depositProducts", productsDetails)}
+            >
               <View style={{ alignItems: "center" }}>
                 <ThemedText style={styles.squareText}>
                   كل المنتجات المتبقية
@@ -87,7 +112,10 @@ export default function Reports() {
             </TouchableOpacity>
           </View>
           <View style={[styles.square, { backgroundColor: "darkblue" }]}>
-            <TouchableOpacity onPress={handleRoute("/points")}>
+            <TouchableOpacity
+              disabled={!loaded}
+              onPress={handleRoute("/points", {})}
+            >
               <View style={{ alignItems: "center" }}>
                 <ThemedText style={styles.squareText}>
                   كل النقاط المعلقة
