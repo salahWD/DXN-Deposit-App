@@ -551,6 +551,104 @@ export const homePageStats = async (userId: string, products: any[]) => {
   }
 };
 
+export const getAllUsersDebts = async (products: any[]) => {
+  try {
+    const depositsSnapshot = await getDocs(collection(db, "deposits"));
+
+    const allDebts = depositsSnapshot.docs.map(docSnap => {
+      const data = docSnap.data();
+      const depositProducts = data.products || [];
+      const userId = docSnap.id;
+
+      let depositProductsCount = 0;
+      let postponedPoints = 0;
+      let depositAmount = 0;
+
+      depositProductsCount = depositProducts.reduce((acc: any, p: { received: any; count: any; }) => {
+        if (!p.received) {
+          acc += p.count;
+        }
+        return acc;
+      }, 0);
+
+      postponedPoints =
+        Math.ceil(
+          depositProducts.reduce((acc: number, prod: { received: any; points: any; id: any; count: number; }) => {
+            if (prod.received && !prod.points) {
+              acc +=
+                (products.find(item => item.id === prod.id)?.points || 0) *
+                prod.count;
+            }
+            return acc;
+          }, 0) * 100
+        ) / 100;
+
+      depositAmount = Math.ceil((data.deptAmount || 0) * 10) / 10;
+
+      return {
+        userId,
+        depositProductsCount,
+        postponedPoints,
+        depositAmount,
+      };
+    });
+
+    return allDebts;
+  } catch (err) {
+    console.error("Error fetching deposits:", err);
+    return [];
+  }
+};
+
+export const getAllUsersPoints = async (products: any[]) => {
+  try {
+    const depositsSnapshot = await getDocs(collection(db, "deposits"));
+
+    const allDebts = depositsSnapshot.docs.map(docSnap => {
+      const data = docSnap.data();
+      const depositProducts = data.products || [];
+      const userId = docSnap.id;
+
+      let depositProductsCount = 0;
+      let postponedPoints = 0;
+      let depositAmount = 0;
+
+      depositProductsCount = depositProducts.reduce((acc: any, p: { received: any; count: any; }) => {
+        if (!p.received) {
+          acc += p.count;
+        }
+        return acc;
+      }, 0);
+
+      postponedPoints =
+        Math.ceil(
+          depositProducts.reduce((acc: number, prod: { received: any; points: any; id: any; count: number; }) => {
+            if (prod.received && !prod.points) {
+              acc +=
+                (products.find(item => item.id === prod.id)?.points || 0) *
+                prod.count;
+            }
+            return acc;
+          }, 0) * 100
+        ) / 100;
+
+      depositAmount = Math.ceil((data.deptAmount || 0) * 10) / 10;
+
+      return {
+        userId,
+        depositProductsCount,
+        postponedPoints,
+        depositAmount,
+      };
+    });
+
+    return allDebts;
+  } catch (err) {
+    console.error("Error fetching deposits:", err);
+    return [];
+  }
+};
+
 export const subscribeToOrders = (callback: (orders: Order[]) => void) => {
   return onSnapshot(collection(db, "orders"), async (snapshot) => {
     const ordersArray = await Promise.all(
@@ -1218,9 +1316,15 @@ export const subscribeToTransactionOrders = (
 };
 
 export async function getReportStats(products: Product[]) {
-  let totalDBDept = 0;
-  let totalDBUnreceivedProducts = 0;
-  let totalDBPoints = 0;
+  let retrun = {
+    totalDeptAmount: 0,
+    totalDBUnreceivedProducts: 0,
+    totalProducts: 0,
+    totalPoints: 0,
+    pointsDetails: [] as any[],
+    deptsDetails: [] as { id: any; deptAmount: number }[],
+    productsDetails: [] as { id: any; products: DepositProduct[] }[],
+  };
 
   try {
     const depositsRef = collection(db, "deposits");
@@ -1228,6 +1332,9 @@ export async function getReportStats(products: Product[]) {
 
     snapshot.forEach((doc) => {
       const data = doc.data();
+
+      // parsing data (depts, points, unreceived products)
+
       const deptAmount = data?.deptAmount;
       const unreceivedProducts = data?.products?.reduce(
         (total: number, item: DepositProduct) =>
@@ -1243,27 +1350,37 @@ export async function getReportStats(products: Product[]) {
         0
       );
 
-      console.log("=========================");
-      console.log(deptAmount, unreceivedProducts, postponedPoints);
-      console.log("=========================");
+      // console.log("=========================");
+      // console.log(deptAmount, unreceivedProducts, postponedPoints);
+      // console.log("=========================");
+
+      // adding stats to "return object"
 
       if (deptAmount && typeof deptAmount === "number") {
-        totalDBDept += deptAmount;
+        retrun.totalDeptAmount += deptAmount;
+        retrun.deptsDetails.push({id: doc.id, deptAmount: Math.round(deptAmount)});
       }
       if (unreceivedProducts && typeof unreceivedProducts === "number") {
-        totalDBUnreceivedProducts += unreceivedProducts;
+        // retrun.deptsDetails.push({id: doc.id, deptAmount: Math.round(deptAmount)});
+        retrun.totalProducts += unreceivedProducts;
       }
+      retrun.productsDetails.push({id: doc.id, products: data?.products?.filter((item: {received: Boolean}) => {
+        return !item.received;
+      })})
       if (postponedPoints && typeof postponedPoints === "number") {
-        totalDBPoints += postponedPoints;
+        retrun.totalPoints += postponedPoints;
       }
     });
   } catch (error) {
     console.error("Error fetching total dept amount:", error);
   }
 
-  return {
-    totalDeptAmount: totalDBDept,
-    totalProducts: totalDBUnreceivedProducts,
-    totalPoints: totalDBPoints,
-  };
+  return retrun;
+  // {
+  //   totalDeptAmount: retrun.totalDeptAmount,
+  //   totalProducts: retrun.totalProducts,
+  //   totalPoints: retrun.totalPoints,
+  //   deptsDetails: retrun.deptsDetails,
+  //   productsDetails: retrun.productsDetails,
+  // };
 }
