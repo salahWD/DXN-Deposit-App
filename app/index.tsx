@@ -14,13 +14,7 @@ export default function IndexScreen() {
   const [password, setPassword] = useState("");
 
   const { isAdmin, userId } = useAdminCheck();
-  console.log(
-    "from index, isAdmin => (",
-    isAdmin,
-    ") userId => (",
-    userId,
-    ")"
-  );
+
   useEffect(() => {
     if (userId) {
       saveUserSession(userId);
