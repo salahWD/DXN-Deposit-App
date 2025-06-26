@@ -114,7 +114,7 @@ export default function Reports() {
           <View style={[styles.square, { backgroundColor: "darkblue" }]}>
             <TouchableOpacity
               disabled={!loaded}
-              onPress={handleRoute("/points", {})}
+              onPress={handleRoute("/points", productsDetails)}
             >
               <View style={{ alignItems: "center" }}>
                 <ThemedText style={styles.squareText}>

@@ -15,6 +15,8 @@ interface ProductCardProps extends Pick<Product, "price"> {
   product: Product;
   handleChangedCount: (product: Product, count: number) => void;
   displayOnly?: Boolean;
+  noPrice?: Boolean;
+  customPointsText?: string | null;
 }
 
 const ProductCard = ({
@@ -24,6 +26,8 @@ const ProductCard = ({
   price = 0,
   product,
   displayOnly = false,
+  noPrice = false,
+  customPointsText = null,
 }: ProductCardProps) => {
   const {
     title: { ar: title },
@@ -75,10 +79,11 @@ const ProductCard = ({
             style={{
               fontSize: 10,
               lineHeight: 12,
+              textAlign: "center",
               color: "#333",
             }}
           >
-            نقاط مؤجلة
+            {!customPointsText ? "نقاط مؤجلة" : customPointsText}
           </ThemedText>
           <ThemedText
             type="default"
@@ -135,10 +140,11 @@ const ProductCard = ({
 
       <View style={styles.details}>
         <ThemedText style={styles.title}>{title}</ThemedText>
-        <ThemedText style={styles.price}>
+
+        {!noPrice && <ThemedText style={styles.price}>
           {price}
           <Text style={{ fontSize: 10 }}> TL</Text>
-        </ThemedText>
+        </ThemedText>}
       </View>
     </View>
   );

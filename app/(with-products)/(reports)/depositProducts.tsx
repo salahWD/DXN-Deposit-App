@@ -11,19 +11,23 @@ import {
   Pressable,
   BackHandler,
   ScrollView,
+  FlatList,
 } from "react-native";
 
 import React, { useEffect } from "react";
 import HeaderBox from "@/components/HeaderBox";
 import { useProducts } from "@/contexts/ProductContext";
 import { ThemedText } from "@/components/ThemedText";
+import ProductCard from "@/components/ProductCard";
 
 export default function Reports() {
   const [error, setError] = useState("");
   const [deposits, setDeposits] = useState<any[]>([]);
-  // const [depositProducts, setDepositProducts] = useState(0);
+  const [filter, setFilter] = useState<boolean>(false);
   const { products } = useProducts();
   const { data } = useLocalSearchParams();
+
+  const [resetKey, setResetKey] = useState(0);
 
   useEffect(() => {
     if (data) {
@@ -48,7 +52,9 @@ export default function Reports() {
       BackHandler.removeEventListener("hardwareBackPress", backAction);
   }, []);
 
-  const handleFilterPress = (value) => {};
+  const handleFilterPress = (value: boolean) => {
+    setFilter(value)
+  };
 
   return (
     <ThemedView style={styles.squaresContainer}>
@@ -72,57 +78,98 @@ export default function Reports() {
             gap: 6,
           }}
         >
-          <View style={styles.square}>
-            <Pressable onPress={() => handleFilterPress(true)}>
+          <View style={{ ...styles.squareContainer, opacity: filter ? 1 : 0.25, backgroundColor: filter ? "darkgray" : "gray" }}>
+            <Pressable style={styles.square} onPress={() => handleFilterPress(true)}>
               <View style={{ alignItems: "center" }}>
                 <ThemedText style={styles.squareText}>حسب المستخدم</ThemedText>
               </View>
             </Pressable>
           </View>
-          <View style={styles.square}>
-            <Pressable onPress={() => handleFilterPress(false)}>
+          <View style={{ ...styles.squareContainer, opacity: filter ? 0.25 : 1, backgroundColor: filter ? "gray" : "darkgray" }}>
+            <Pressable style={styles.square} onPress={() => handleFilterPress(false)}>
               <View style={{ alignItems: "center" }}>
                 <Text style={styles.squareText}>حسب المنتج</Text>
               </View>
             </Pressable>
           </View>
         </View>
-        {/* <ScrollView
-          style={styles.content}
-          contentContainerStyle={{ paddingBottom: 45 }}
-        >
-          {deposits.map((user, idx) => (
-            <View key={idx} style={{ marginBottom: 12 }}>
-              <View style={styles.card}>
-                <Text style={styles.title}>المستخدم: {user.id}</Text>
-                <Text style={styles.price}>
-                  {(user?.products && user.products.length) || 0}
-                  <Text style={{ fontSize: 10 }}> منتج </Text>
-                </Text>
-              </View>
+        <View style={{flex: 1}}>
+          {(products.length === 0 && !filter) || (deposits?.length === 0 && filter) ? (
+            <ThemedView style={{ ...styles.content, flex: 1 }}>
+              <Text style={styles.dangerAlert}>لا يوجد بيانات لعرضها</Text>
+            </ThemedView>
+          ) : (
+            <View style={{ flex: 1 }}>
+
+              {!filter && (<FlatList
+                contentContainerStyle={{ paddingHorizontal: 32, paddingTop: 10, paddingBottom: 110 }}
+                data={products}
+                renderItem={({ item: product }) => {
+                  let availableCount = 0;
+                    deposits?.forEach((deposit) => {
+                      deposit?.products && deposit?.products.forEach((prod: { id: string; received: boolean; count: number; }) => {
+                        if (prod.id == product.id && prod.received == false && prod.count > 0) {
+                          availableCount += prod.count;
+                        }
+                      })
+                    });
+
+                  return (
+                    <ProductCard
+                      key={`${product.id}-${resetKey}`}
+                      handleChangedCount={() => {}}
+                      depositCount={availableCount}
+                      displayOnly={true}
+                      product={product}
+                      price={0}
+                      noPrice={true}
+                      customPointsText={"إجمالي المنتجات"}
+                    />
+                  );
+                }}
+                keyExtractor={(item) => item.id.toString()}
+                ListEmptyComponent={<Text>No Products found</Text>}
+              />)}
+
+              {filter && (<FlatList
+                contentContainerStyle={{ paddingHorizontal: 32, paddingTop: 10, paddingBottom: 110 }}
+                data={deposits}
+                renderItem={({ item: deposit }) => {
+                  if (
+                    !deposit?.products ||
+                    !deposit?.products.length ||
+                    deposit?.products?.filter(
+                      (item: { received: boolean; count: number }) =>
+                        item.received == false && item.count > 0
+                    ).length == 0
+                  )
+                    return null;
+
+                  return (
+                    <View style={styles.card}>
+                      <Text style={styles.title}>المستخدم: {deposit.id}</Text>
+                      <View>
+                        {deposit?.products?.map(
+                          (prod: { received: any; title: string; count: number }, idx: number) => {
+                            if (prod.received) return null;
+                            return (
+                              <Text style={styles.price} key={idx}>
+                                {prod.title} (x{prod.count})
+                              </Text>
+                            );
+                          }
+                        )}
+                      </View>
+                    </View>
+                  );
+                }}
+                keyExtractor={(item) => item.id.toString()}
+                ListEmptyComponent={<Text>No Products found</Text>}
+              />)}
+
             </View>
-          ))}
-          <View>
-            <View
-              style={{
-                ...styles.card,
-                paddingVertical: 16,
-                paddingHorizontal: 14,
-                backgroundColor: "#cfcfcf",
-              }}
-            >
-              <Text style={styles.title}>الإجمالي:</Text>
-              <Text style={styles.price}>
-                {deposits.reduce((total, user) => {
-                  if (!user?.products || user?.products?.length <= 0)
-                    return total;
-                  return total + user.products.length;
-                }, 0)}
-                <Text style={{ fontSize: 10 }}> منتج </Text>
-              </Text>
-            </View>
-          </View>
-        </ScrollView> */}
+          )}
+        </View>
       </View>
     </ThemedView>
   );
@@ -136,7 +183,6 @@ const styles = StyleSheet.create({
   },
   container: { height: "100%", width: "100%" },
   content: {
-    flex: 1,
     padding: 32,
     paddingTop: 12,
     paddingBottom: 0,
@@ -154,14 +200,19 @@ const styles = StyleSheet.create({
     borderColor: "#F88379",
     backgroundColor: "#F8837960",
   },
-  square: {
-    minHeight: 110,
+  squareContainer: {
     flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
+    overflow: "hidden",
     borderRadius: 10,
     marginBottom: 10,
-    backgroundColor: "white",
+  },
+  square: {
+    minHeight: 110,
+    borderRadius: 10,
+    justifyContent: "center",
+    alignItems: "center",
+    borderColor: "#303030",
+    borderWidth: 2,
     paddingVertical: 12,
     padding: 8,
   },
@@ -178,6 +229,7 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     backgroundColor: "#fff",
     borderRadius: 8,
+    marginBottom: 10,
     padding: 8,
     borderColor: "#e0e0e0",
     borderWidth: 1,

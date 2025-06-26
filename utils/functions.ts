@@ -1338,7 +1338,7 @@ export async function getReportStats(products: Product[]) {
       const deptAmount = data?.deptAmount;
       const unreceivedProducts = data?.products?.reduce(
         (total: number, item: DepositProduct) =>
-          !item.received ? total + item.count : total,
+          item.received == false ? total + item.count : total,
         0
       );
       const postponedPoints = data?.products?.reduce(

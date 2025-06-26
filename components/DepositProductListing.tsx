@@ -37,7 +37,6 @@ const DepositProductListing = ({
       </View>
     );
   }
-  console.log(availableProducts);
 
   return (
     <View style={{ flex: 1 }}>

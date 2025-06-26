@@ -1,31 +1,23 @@
 import { useState } from "react";
-import { getReportStats } from "@/utils/functions";
-import useAdminCheck from "@/contexts/useAdminCheck";
-import { router } from "expo-router";
+import { router, useLocalSearchParams } from "expo-router";
 
 import { ThemedView } from "@/components/ThemedView";
 import {
   StyleSheet,
   View,
-  TouchableOpacity,
   Text,
-  TextInput,
   Pressable,
   BackHandler,
+  FlatList,
 } from "react-native";
 
 import React, { useEffect } from "react";
 import HeaderBox from "@/components/HeaderBox";
 import { useProducts } from "@/contexts/ProductContext";
+import { ThemedText } from "@/components/ThemedText";
+import ProductCard from "@/components/ProductCard";
 
-export default function Reports() {
-  const [error, setError] = useState("");
-  // const [totalDept, setTotalDept] = useState(0);
-  // const [totalProducts, setTotalProducts] = useState(0);
-  // const [totalPoints, setTotalPoints] = useState(0);
-
-  const { isLoading } = useAdminCheck();
-  const { products } = useProducts();
+export default function Points() {
 
   const backAction = () => {
     router.replace("/(reports)");
@@ -34,25 +26,163 @@ export default function Reports() {
 
   BackHandler.addEventListener("hardwareBackPress", backAction);
 
-  return (
-    <ThemedView style={styles.squaresContainer}>
-      <View style={styles.container}>
-        <HeaderBox title="التقارير" />
-        {error && (
-          <ThemedView style={{ ...styles.content, paddingBottom: 12 }}>
-            <Text style={styles.error}>{error}</Text>
-          </ThemedView>
-        )}
-        <ThemedView style={{ ...styles.content, paddingBottom: 12 }}>
-          <ThemedView style={{ gap: 12 }}>
-            <Text style={{ fontSize: 16, fontWeight: "600", color: "#374151" }}>
-              points
-            </Text>
-          </ThemedView>
-        </ThemedView>
-      </View>
-    </ThemedView>
-  );
+
+  const [error, setError] = useState("");
+    const [deposits, setDeposits] = useState<any[]>([]);
+    const [filter, setFilter] = useState<boolean>(false);
+    const { products } = useProducts();
+    const { data } = useLocalSearchParams();
+  
+    const [resetKey, setResetKey] = useState(0);
+  
+    useEffect(() => {
+      if (data) {
+        try {
+          const parsedData = JSON.parse(data as string);
+          setDeposits(parsedData);
+          console.log("Received deposits:", parsedData);
+        } catch (e) {
+          console.error("Failed to parse passed data:", e);
+        }
+      }
+    }, [data]);
+  
+    useEffect(() => {
+      const backAction = () => {
+        router.replace("/(reports)");
+        return true;
+      };
+  
+      BackHandler.addEventListener("hardwareBackPress", backAction);
+      return () =>
+        BackHandler.removeEventListener("hardwareBackPress", backAction);
+    }, []);
+  
+    const handleFilterPress = (value: boolean) => {
+      setFilter(value)
+    };
+  
+    return (
+      <ThemedView style={styles.squaresContainer}>
+        <View style={styles.container}>
+          <HeaderBox
+            title="كل النقاط المعلقة"
+            handleGoBack={() => {
+              router.replace("/(reports)");
+            }}
+          />
+          {error && (
+            <ThemedView style={{ ...styles.content, paddingBottom: 12 }}>
+              <Text style={styles.error}>{error}</Text>
+            </ThemedView>
+          )}
+          <View
+            style={{
+              ...styles.content,
+              flexDirection: "row",
+              flexWrap: "wrap",
+              gap: 6,
+            }}
+          >
+            <View style={{ ...styles.squareContainer, opacity: filter ? 1 : 0.25, backgroundColor: filter ? "darkgray" : "gray" }}>
+              <Pressable style={styles.square} onPress={() => handleFilterPress(true)}>
+                <View style={{ alignItems: "center" }}>
+                  <ThemedText style={styles.squareText}>حسب المستخدم</ThemedText>
+                </View>
+              </Pressable>
+            </View>
+            <View style={{ ...styles.squareContainer, opacity: filter ? 0.25 : 1, backgroundColor: filter ? "gray" : "darkgray" }}>
+              <Pressable style={styles.square} onPress={() => handleFilterPress(false)}>
+                <View style={{ alignItems: "center" }}>
+                  <Text style={styles.squareText}>حسب المنتج</Text>
+                </View>
+              </Pressable>
+            </View>
+          </View>
+          <View style={{flex: 1}}>
+            {(products.length === 0 && !filter) || (deposits?.length === 0 && filter) ? (
+              <ThemedView style={{ ...styles.content, flex: 1 }}>
+                <Text style={styles.dangerAlert}>لا يوجد بيانات لعرضها</Text>
+              </ThemedView>
+            ) : (
+              <View style={{ flex: 1 }}>
+  
+                {!filter && (<FlatList
+                  contentContainerStyle={{ paddingHorizontal: 32, paddingTop: 10, paddingBottom: 110 }}
+                  data={products}
+                  renderItem={({ item: product }) => {
+                    let availableCount = 0;
+                      deposits?.forEach((deposit) => {
+                        deposit?.products && deposit?.products.forEach((prod: { id: string; points: boolean; count: number; }) => {
+                          if (prod.id == product.id && prod.points == false && prod.count > 0) {
+                            availableCount += prod.count;
+                          }
+                        })
+                      });
+  
+                    return (
+                      <ProductCard
+                        key={`${product.id}-${resetKey}`}
+                        handleChangedCount={() => {}}
+                        depositCount={availableCount}
+                        displayOnly={true}
+                        product={product}
+                        price={0}
+                        noPrice={true}
+                        customPointsText={"عدد المؤجل"}
+                      />
+                    );
+                  }}
+                  keyExtractor={(item) => item.id.toString()}
+                  ListEmptyComponent={<ThemedView style={{ ...styles.content, flex: 1 }}>
+                <Text style={styles.dangerAlert}>لا يوجد بيانات لعرضها</Text>
+              </ThemedView>}
+                />)}
+  
+                {filter && (<FlatList
+                  contentContainerStyle={{ paddingHorizontal: 32, paddingTop: 10, paddingBottom: 110 }}
+                  data={deposits}
+                  renderItem={({ item: deposit }) => {
+                    if (
+                      !deposit?.products ||
+                      !deposit?.products.length ||
+                      deposit?.products?.filter(
+                        (item: { points: boolean; count: number }) =>
+                          item.points == false && item.count > 0
+                      ).length == 0
+                    )
+                      return null;
+  
+                    return (
+                      <View style={styles.card}>
+                        <Text style={styles.title}>المستخدم: {deposit.id}</Text>
+                        <View>
+                          {deposit?.products?.map(
+                            (prod: { points: any; title: string; count: number }, idx: number) => {
+                              if (prod.points) return null;
+                              return (
+                                <Text style={styles.price} key={idx}>
+                                  {prod.title} (x{prod.count})
+                                </Text>
+                              );
+                            }
+                          )}
+                        </View>
+                      </View>
+                    );
+                  }}
+                  keyExtractor={(item) => item.id.toString()}
+                  ListEmptyComponent={<ThemedView style={{ ...styles.content, flex: 1 }}>
+                <Text style={styles.dangerAlert}>لا يوجد بيانات لعرضها</Text>
+              </ThemedView>}
+                />)}
+  
+              </View>
+            )}
+          </View>
+        </View>
+      </ThemedView>
+    );
 }
 
 const styles = StyleSheet.create({
@@ -64,6 +194,8 @@ const styles = StyleSheet.create({
   container: { height: "100%", width: "100%" },
   content: {
     padding: 32,
+    paddingTop: 12,
+    paddingBottom: 0,
     gap: 16,
     overflow: "hidden",
   },
@@ -78,12 +210,19 @@ const styles = StyleSheet.create({
     borderColor: "#F88379",
     backgroundColor: "#F8837960",
   },
-  square: {
-    minHeight: 110,
-    justifyContent: "center",
-    alignItems: "center",
+  squareContainer: {
+    flex: 1,
+    overflow: "hidden",
     borderRadius: 10,
     marginBottom: 10,
+  },
+  square: {
+    minHeight: 110,
+    borderRadius: 10,
+    justifyContent: "center",
+    alignItems: "center",
+    borderColor: "#303030",
+    borderWidth: 2,
     paddingVertical: 12,
     padding: 8,
   },
@@ -94,4 +233,26 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
   },
   squareValue: { color: "white", opacity: 0.75, marginTop: 10, fontSize: 14 },
+
+  card: {
+    flexDirection: "row-reverse",
+    justifyContent: "space-between",
+    backgroundColor: "#fff",
+    borderRadius: 8,
+    marginBottom: 10,
+    padding: 8,
+    borderColor: "#e0e0e0",
+    borderWidth: 1,
+    alignItems: "center",
+  },
+  title: {
+    marginLeft: 7,
+    textAlign: "right",
+    fontWeight: "bold",
+    fontSize: 14,
+  },
+  price: {
+    fontSize: 14,
+    color: "#000",
+  },
 });

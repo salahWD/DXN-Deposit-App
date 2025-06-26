@@ -89,7 +89,7 @@ export default function DepositScreen() {
     setButtonLoading(true);
 
     if (userId && typeof userId == "string") {
-      const res = await adminMarkProductsAsReceived(userId, availableProducts);
+      const res = await adminMarkProductsAsReceived(userId, adminId, availableProducts);
       if (res) {
         router.replace("/home");
       }

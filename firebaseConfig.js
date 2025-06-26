@@ -3,9 +3,11 @@ import { initializeApp } from "@firebase/app";
 import { getFirestore } from "@firebase/firestore";
 import {
   initializeAuth,
-  getReactNativePersistence,
+  // getReactNativePersistence,
   getAuth,
 } from "firebase/auth";
+import { getReactNativePersistence } from '@firebase/auth/dist/rn/index.js';
+
 import ReactNativeAsyncStorage from "@react-native-async-storage/async-storage";
 
 // Your web app's Firebase configuration (replace with your own config)
