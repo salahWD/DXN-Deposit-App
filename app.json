@@ -13,7 +13,13 @@
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
+      "edgeToEdgeEnabled": true,
       "package": "com.salahtemps.dxndepositcenter"
+    },
+    "web": {
+      "bundler": "metro",
+      "output": "static",
+      "favicon": "./assets/images/favicon.png"
     },
     "plugins": [
       "expo-router",
@@ -26,18 +32,7 @@
           "backgroundColor": "#ffffff"
         }
       ],
-      [
-        "expo-build-properties",
-        {
-          "android": {
-            "kotlinVersion": "1.9.10",
-            "compileSdkVersion": 34,
-            "targetSdkVersion": 34,
-            "minSdkVersion": 23,
-            "buildToolsVersion": "34.0.0"
-          }
-        }
-      ]
+      "expo-build-properties"
     ],
     "extra": {
       "router": {
@@ -46,6 +41,9 @@
       "eas": {
         "projectId": "8c6f0aef-cb4b-4a50-9c04-6963e644b7f4"
       }
+    },
+    "experiments": {
+      "typedRoutes": true
     }
   }
 }
