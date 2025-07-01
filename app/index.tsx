@@ -1,13 +1,13 @@
 import { db } from "@/firebaseConfig";
-import { doc, setDoc, getDoc } from "firebase/firestore";
-import { useState, useEffect } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { doc, getDoc, setDoc } from "firebase/firestore";
+import { useEffect, useState } from "react";
 
-import { router } from "expo-router";
-import CryptoJS from "crypto-js";
 import LoginPage from "@/components/LoginPage";
-import React from "react";
 import useAdminCheck from "@/contexts/useAdminCheck";
+import CryptoJS from "crypto-js";
+import { router } from "expo-router";
+import React from "react";
 
 export default function IndexScreen() {
   const [username, setUsername] = useState("");
@@ -56,10 +56,9 @@ export default function IndexScreen() {
       const isPasswordCorrect = verifyPassword(password, userData.password);
 
       if (isPasswordCorrect) {
-        console.log("Login successful");
+        // Save user session data here
         saveUserSession(username);
         router.replace("/home");
-        // Save user session data here
       } else {
         console.error("Invalid password");
       }
@@ -69,7 +68,6 @@ export default function IndexScreen() {
   }
 
   async function saveUserSession(id: string) {
-    console.log("save user session ", id);
     try {
       await AsyncStorage.setItem("userId", id);
     } catch (error) {

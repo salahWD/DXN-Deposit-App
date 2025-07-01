@@ -1,28 +1,29 @@
-import { useEffect, useState } from "react";
+import useAdminCheck from "@/contexts/useAdminCheck";
 import {
-  getUserSession,
   fetchUserDepositAndOrders,
-  markProductsAsReceived,
+  markProductsAsReceived
 } from "@/utils/functions";
 import { DepositProduct } from "@/utils/types";
-import useAdminCheck from "@/contexts/useAdminCheck";
+import React, { useEffect, useState } from "react";
 
-import Icon from "react-native-vector-icons/MaterialCommunityIcons";
 import { ThemedView } from "@/components/ThemedView";
 import {
-  StyleSheet,
+  Alert,
   FlatList,
-  View,
-  Pressable,
+  Keyboard,
+  KeyboardAvoidingView,
+  StyleSheet,
   Text,
   TextInput,
-  Alert,
   TouchableOpacity,
+  TouchableWithoutFeedback,
+  View
 } from "react-native";
+import Icon from "react-native-vector-icons/MaterialCommunityIcons";
 
-import React from "react";
 import HeaderBox from "@/components/HeaderBox";
 
+import { useProducts } from "@/contexts/ProductContext";
 import SelectDropdown from "react-native-select-dropdown";
 
 function addAndMergeProducts(
@@ -44,12 +45,29 @@ export default function DepositScreen() {
   const [products, setProducts] = useState<DepositProduct[]>([]);
   const [loading, setLoading] = useState(true);
   const [notes, setNotes] = useState("");
+  const [totalPoints, setTotalPoints] = useState(0);
+  const { products: productsData } = useProducts();
   const [error, setError] = useState<string | null>(null);
   const { userId } = useAdminCheck();
   const [selectedProducts, setSelectedProducts] = useState<
     Record<string | number, number>
   >({});
   const [buttonLoading, setButtonLoading] = useState(false);
+
+  useEffect(() => {
+    if (Object.entries(selectedProducts).length) {
+      let total = 0;
+      Object.entries(selectedProducts).forEach(([key, value]) => {
+        let arr = productsData.filter(prod => prod.id == key);
+        if (arr.length) {
+          total += arr[0].points * value;
+        }
+      });
+      setTotalPoints(total);
+    }else {
+      setTotalPoints(0);
+    }
+  }, [selectedProducts])
 
   useEffect(() => {
     if (userId) {
@@ -67,10 +85,6 @@ export default function DepositScreen() {
       return;
     }
   }, [userId]);
-
-  useEffect(() => {
-    console.log(selectedProducts);
-  }, [selectedProducts]);
 
   const handleMarkAsReceived = async () => {
     if (buttonLoading) return;
@@ -263,6 +277,7 @@ export default function DepositScreen() {
     );
   };
 
+
   if (loading) {
     return (
       <ThemedView style={styles.squaresContainer}>
@@ -277,66 +292,90 @@ export default function DepositScreen() {
   }
 
   return (
-    <ThemedView style={styles.squaresContainer}>
-      <View style={styles.container}>
-        <HeaderBox title="صندوق الودائع" />
-        {/* {error && (
-          <ThemedView style={styles.content}>
-            <Text style={styles.error}>{error}</Text>
-          </ThemedView>
-        )} */}
-        {products.length === 0 ? (
-          <ThemedView style={{ ...styles.content, flex: 1 }}>
-            <Text style={styles.dangerAlert}>لا يوجد طلبات</Text>
-          </ThemedView>
-        ) : (
-          <FlatList
-            data={products}
-            contentContainerStyle={{ paddingHorizontal: 24 }}
-            renderItem={renderProduct}
-            keyExtractor={(item, index) => index.toString()}
-            style={styles.list}
-          />
-        )}
-        <ThemedView style={{ ...styles.content, paddingTop: 12, flex: "none" }}>
-          <TextInput
-            style={styles.input}
-            placeholder="ملاحظات (إجباري)"
-            value={notes}
-            onChangeText={setNotes}
-          />
-          <TouchableOpacity onPress={() => handleMarkAsReceived()}>
-            <View
-              style={{
-                width: "100%",
-                gap: 8,
-                padding: 12,
-                borderRadius: 8,
-                backgroundColor: "#4FFFB0",
-                display: "flex",
-                flexDirection: "row",
-                alignItems: "center",
-                justifyContent: "center",
-              }}
-            >
-              {!buttonLoading && (
-                <>
-                  <Icon name="cart-outline" style={{ fontSize: 25 }} />
-                  <Text style={{ fontSize: 18, fontWeight: "bold" }}>
-                    إستلام المنتجات
-                  </Text>
-                </>
-              )}
-              {buttonLoading && (
-                <Text style={{ fontSize: 18, fontWeight: "bold" }}>
-                  جاري التحميل...
-                </Text>
+    <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+      <ThemedView style={styles.squaresContainer}>
+        <View style={{...styles.container, }}>
+          <HeaderBox title="صندوق الودائع" />
+
+          <KeyboardAvoidingView
+            behavior={"height"}
+            style={{ flex: 1 }}
+          >
+            <View style={{ flex: 1, justifyContent: "space-between", }}>
+              {products.length === 0 ? (
+                <ThemedView style={{ ...styles.content, flex: 1 }}>
+                  <Text style={styles.dangerAlert}>لا يوجد طلبات</Text>
+                </ThemedView>
+              ) : (
+                <FlatList
+                  data={products}
+                  contentContainerStyle={{ paddingHorizontal: 24 }}
+                  renderItem={renderProduct}
+                  keyExtractor={(item, index) => index.toString()}
+                  style={styles.list}
+                />
               )}
             </View>
-          </TouchableOpacity>
-        </ThemedView>
-      </View>
-    </ThemedView>
+
+            {/* Bottom Input/Button */}
+            <ThemedView
+              style={{
+                ...styles.content,
+                paddingTop: 12,
+              }}
+            >
+              <TextInput
+                style={styles.input}
+                placeholder="ملاحظات (إجباري)"
+                value={notes}
+                onChangeText={setNotes}
+              />
+              <View style={{ flexDirection: "row", justifyContent: "space-between", gap: 8 }}>
+                <TouchableOpacity style={{flex:1}} onPress={handleMarkAsReceived}>
+                  <View
+                    style={{
+                      width: "100%",
+                      gap: 8,
+                      padding: 12,
+                      borderRadius: 8,
+                      backgroundColor: "#4FFFB0",
+                      flexDirection: "row",
+                      alignItems: "center",
+                      justifyContent: "center",
+                    }}
+                  >
+                    {!buttonLoading ? (
+                      <>
+                        <Icon name="cart-outline" style={{ fontSize: 25 }} />
+                        <Text style={{ fontSize: 18, fontWeight: "bold" }}>
+                          إستلام المنتجات
+                        </Text>
+                      </>
+                    ) : (
+                      <Text style={{ fontSize: 18, fontWeight: "bold" }}>
+                        جاري التحميل...
+                      </Text>
+                    )}
+                  </View>
+                </TouchableOpacity>
+                <View
+                    style={{
+                      padding: 8,
+                      borderRadius: 8,
+                      minWidth: 60,
+                      alignItems: "center",
+                      justifyContent: "center",
+                      backgroundColor: "#4FFFB0",
+                    }}
+                  >
+                    <Text>{totalPoints}</Text>
+                  </View>
+              </View>
+            </ThemedView>
+          </KeyboardAvoidingView>
+        </View>
+      </ThemedView>
+    </TouchableWithoutFeedback>
   );
 }
 
@@ -402,6 +441,7 @@ const styles = StyleSheet.create({
   },
   content: {
     padding: 32,
+    paddingBottom: 12,
     gap: 16,
     overflow: "hidden",
   },

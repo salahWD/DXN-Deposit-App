@@ -1,21 +1,21 @@
-import {
-  ScrollView,
-  StyleSheet,
-  View,
-  Pressable,
-  Text,
-  TouchableOpacity,
-} from "react-native";
 import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
 import { router } from "expo-router";
-import { useEffect, useState } from "react";
+import { ReactElement, useEffect, useState } from "react";
+import {
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
 
-import { getUserSession, homePageStats } from "@/utils/functions";
 import { useProducts } from "@/contexts/ProductContext";
-import React from "react";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import useAdminCheck from "@/contexts/useAdminCheck";
+import { homePageStats } from "@/utils/functions";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import React from "react";
 
 import { Colors } from "@/constants/Colors";
 
@@ -24,7 +24,7 @@ export default function HomeScreen() {
   const [depositPoints, setDepositPoints] = useState(0);
   const [depositAmount, setDepositAmount] = useState(0);
 
-  const userPages = [
+  const userPages: Array<{id: number, title: string, color: string, route: string, value: string | number | ReactElement}> = [
     {
       id: 0,
       title: "النقاط المؤجلة",
@@ -77,7 +77,7 @@ export default function HomeScreen() {
       value: "الأرشيف",
     },
   ];
-  const adminPages = [
+  const adminPages: Array<{id: number, title: string, color: string, route: string, value: string}> = [
     {
       id: 0,
       title: "طلبات تنزيل النقاط",
@@ -108,7 +108,7 @@ export default function HomeScreen() {
     },
     {
       id: 4,
-      title: "إدارة الودائع",
+      title: "الودائع",
       color: "green",
       route: "/depositManagement",
       value: "خاص بالإدارة",
@@ -140,8 +140,7 @@ export default function HomeScreen() {
   }, [userId, products, isLoading]);
 
   const handleSquarePress = (route: string) => {
-    console.log(route, "route");
-    router.replace(route);
+    router.replace(route as any);
   };
 
   const logout = async () => {
@@ -163,7 +162,7 @@ export default function HomeScreen() {
           type="title"
           style={{ fontSize: 24, flex: 1, textAlign: "center" }}
         >
-          أهلا وسهلا ({"اسم المستخدم"})
+          أهلا وسهلا ({userId})
         </ThemedText>
       </ThemedView>
 
@@ -190,6 +189,39 @@ export default function HomeScreen() {
             </Pressable>
           </View>
         ))}
+      </View>
+      <View style={[styles.square, { gap: 12, width: "100%", backgroundColor: "#595959", paddingVertical: 22, padding: 12 }]}>
+        <Text style={{ color: "white", fontSize: 18, textAlign: "center" }}>
+          معلومات عامة
+        </Text>
+        <Text style={{ color: "#e7e7e7", fontSize: 14, width: "100%", textAlign: "center" }}>
+          هاتف المكتب:
+          +905444482988
+        </Text>
+        <Text style={{ color: "white", fontSize: 18, textAlign: "center" }}>
+          العنوان: 
+        </Text>
+        <Text style={{ color: "#e7e7e7", fontSize: 14, width: "100%", textAlign: "center" }}>
+          اسطنبول - ميدان اسنيورت - هان بلاس (البناء الاسود) - طابق 13 - مكتب رقم 381{"\n"}{"\n"}
+          Sultaniye Mah. Doğan Araslı Bulvan Han Plus No:146-150
+          kat: 13 ofis. 381, 34510 Esenyurt/İstanbul
+        </Text>
+        <Text style={{ color: "white", fontSize: 18, textAlign: "center" }}>
+          TEB Bank: 
+        </Text>
+        <Text style={{ color: "#e7e7e7", fontSize: 14, width: "100%", textAlign: "center" }}>
+          UPPER HANDS GİDA VE GENEL TİCARET LİMİTED ŞİRKETİ
+          {"\n"}{"\n"}
+          TR320003200000000086127100
+        </Text>
+        <Text style={{ color: "white", fontSize: 18, textAlign: "center" }}>
+          Ziraat Bank: 
+        </Text>
+        <Text style={{ color: "#e7e7e7", fontSize: 14, width: "100%", textAlign: "center" }}>
+          UPPER HANDS GİDA VE GENEL TİCARET LİMİTED ŞİRKETİ
+          {"\n"}{"\n"}
+          TR150001002574960568765002
+        </Text>
       </View>
       <View style={[styles.square, styles.logoutSquare]}>
         <TouchableOpacity

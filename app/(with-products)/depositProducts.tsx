@@ -1,27 +1,26 @@
-import React, { useEffect, useState } from "react";
+import useAdminCheck from "@/contexts/useAdminCheck";
 import {
   adminFetchUserDepositAndOrders,
   adminMarkProductsAsReceived,
 } from "@/utils/functions";
 import { DepositProduct, Product } from "@/utils/types";
-import useAdminCheck from "@/contexts/useAdminCheck";
 import { router } from "expo-router";
+import React, { useEffect, useState } from "react";
 
-import Icon from "react-native-vector-icons/MaterialCommunityIcons";
 import { ThemedView } from "@/components/ThemedView";
 import {
   StyleSheet,
-  View,
   Text,
   TextInput,
   TouchableOpacity,
+  View,
 } from "react-native";
+import Icon from "react-native-vector-icons/MaterialCommunityIcons";
 
 import HeaderBox from "@/components/HeaderBox";
 
-import SelectDropdown from "react-native-select-dropdown";
-import { useLocalSearchParams } from "expo-router";
 import DepositProductListing from "@/components/DepositProductListing";
+import { useLocalSearchParams } from "expo-router";
 
 export default function DepositScreen() {
   const [products, setProducts] = useState<DepositProduct[]>([]);

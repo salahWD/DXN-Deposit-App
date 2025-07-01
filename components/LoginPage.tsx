@@ -1,16 +1,16 @@
 import {
+  Button,
+  Keyboard,
   KeyboardAvoidingView,
+  Pressable,
   ScrollView,
   StyleSheet,
-  View,
   Text,
   TextInput,
-  Button,
-  Pressable,
+  View,
 } from "react-native";
 
-import { useState, useEffect } from "react";
-import React from "react";
+import React, { useState } from "react";
 
 console.log("index - page");
 
@@ -38,8 +38,10 @@ export default function LoginPage({
         minHeight: "100%",
         width: "100%",
       }}
+      keyboardShouldPersistTaps="handled"
     >
       <KeyboardAvoidingView
+        behavior="padding"
         style={{
           alignItems: "center",
           justifyContent: "center",
@@ -78,6 +80,7 @@ export default function LoginPage({
             <Button
               title={isRegister ? "إنشاء حساب" : "تسجيل الدخول"}
               onPress={() => {
+                Keyboard.dismiss();
                 if (isRegister) {
                   register();
                 } else {

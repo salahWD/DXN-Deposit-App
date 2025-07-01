@@ -1,7 +1,7 @@
 {
   "expo": {
     "scheme": "dxndepo",
-    "name": "dxn-deposit-center",
+    "name": "DXN صندوق الودائع",
     "slug": "dxn-deposit-center",
     "version": "1.0.4",
     "orientation": "default",

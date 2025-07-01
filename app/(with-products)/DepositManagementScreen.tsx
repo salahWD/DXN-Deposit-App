@@ -1,26 +1,23 @@
+import { fetchDeposits, homePageStats } from "@/utils/functions"; // Adjust path to your functions.ts
 import {
-  View,
-  Text,
   FlatList,
-  TextInput,
-  Button,
-  StyleSheet,
-  TouchableOpacity,
-  ScrollView,
   Pressable,
   SafeAreaView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View
 } from "react-native";
-import { fetchDeposits, homePageStats } from "@/utils/functions"; // Adjust path to your functions.ts
 
-import { useState, useEffect } from "react";
 import { router } from "expo-router";
+import { useEffect, useState } from "react";
 
-import { Deposit, DepositProduct } from "@/utils/types";
+import { Deposit } from "@/utils/types";
 
-import Icon from "react-native-vector-icons/MaterialCommunityIcons";
-import { ThemedView } from "@/components/ThemedView";
 import { ThemedText } from "@/components/ThemedText";
+import { ThemedView } from "@/components/ThemedView";
 import { useProducts } from "@/contexts/ProductContext";
+import Icon from "react-native-vector-icons/MaterialCommunityIcons";
 
 import React from "react";
 
@@ -58,7 +55,7 @@ const DepositManagementScreen = () => {
   };
 
   const handleGoBack = () => {
-    router.back();
+    router.navigate("/home");
   };
 
   const renderDeposit = ({ item: deposit }: { item: Deposit }) => {
