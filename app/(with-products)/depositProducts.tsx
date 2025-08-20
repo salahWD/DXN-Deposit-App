@@ -20,23 +20,42 @@ import Icon from "react-native-vector-icons/MaterialCommunityIcons";
 import HeaderBox from "@/components/HeaderBox";
 
 import DepositProductListing from "@/components/DepositProductListing";
+import { useProducts } from "@/contexts/ProductContext";
 import { useLocalSearchParams } from "expo-router";
 
 export default function DepositScreen() {
   const [products, setProducts] = useState<DepositProduct[]>([]);
   const [loading, setLoading] = useState(true);
   const [notes, setNotes] = useState("");
+  const [totalPoints, setTotalPoints] = useState(0);
+  const { products: productsData } = useProducts();
   const [error, setError] = useState<string | null>(null);
   const { userId } = useLocalSearchParams();
   const { userId: adminId } = useAdminCheck();
   const [availableProducts, setAvailableProducts] = useState<DepositProduct[]>(
     []
   );
-  // const [selectedProducts, setSelectedProducts] = useState<{id: string, title: string, count: number}[]>(
-  //   []
-  // );
+  const [selectedProducts, setSelectedProducts] = useState<
+    Record<string | number, number>
+  >({});
   const [buttonLoading, setButtonLoading] = useState(false);
   const [resetKey, setResetKey] = useState(0);
+
+
+  useEffect(() => {
+    if (Object.entries(selectedProducts).length) {
+      let total = 0;
+      Object.entries(selectedProducts).forEach(([key, value]) => {
+        let arr = productsData.filter(prod => prod.id == key);
+        if (arr.length) {
+          total += arr[0].points * value;
+        }
+      });
+      setTotalPoints(total);
+    } else {
+      setTotalPoints(0);
+    }
+  }, [selectedProducts])
 
   useEffect(() => {
     if (userId && typeof userId == "string") {
@@ -58,14 +77,25 @@ export default function DepositScreen() {
   }, [userId]);
 
   const handleChangedOrder = (product: Product, count: number) => {
-    // setSelectedProducts(availableProducts.map(p => ({id: p.id, title: p.title, count: p.count})));
+    if (count > 0) {
+      setSelectedProducts((prev) => ({
+        ...prev,
+        [product.id as string | number]: count,
+      }));
+    } else {
+      setSelectedProducts((prev) => {
+        const newState = { ...prev };
+        delete newState[product.id as string | number];
+        return newState;
+      });
+    }
     setAvailableProducts((prev) => {
-      const existingProduct = prev.find((p) => p.id === product.id);
+      const existingProduct = prev.find((p) => p.id == product.id);
       if (existingProduct) {
-        if (count === 0) {
-          return prev.filter((p) => p.id !== product.id);
+        if (count == 0) {
+          return prev.filter((p) => p.id != product.id);
         }
-        return prev.map((p) => (p.id === product.id ? { ...p, count } : p));
+        return prev.map((p) => (p.id == product.id ? { ...p, count } : p));
       }
       if (count > 0) {
         return [
@@ -75,7 +105,7 @@ export default function DepositScreen() {
             title: product.title.ar,
             count,
             received: false, // Force admin logic: always unreceived
-            points: false, // default to false unless used for points screen
+            points: true, // default to true for admin added products
           },
         ];
       }
@@ -137,35 +167,49 @@ export default function DepositScreen() {
             value={notes}
             onChangeText={setNotes}
           />
-          <TouchableOpacity onPress={() => handleSaveDepositProducts()}>
+          <View style={{ flexDirection: "row", justifyContent: "space-between", gap: 8 }}>
+            <TouchableOpacity onPress={() => handleSaveDepositProducts()}>
+              <View
+                style={{
+                  width: "100%",
+                  gap: 8,
+                  padding: 12,
+                  borderRadius: 8,
+                  backgroundColor: "#4FFFB0",
+                  display: "flex",
+                  flexDirection: "row",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                {!buttonLoading && (
+                  <>
+                    <Icon name="cart-outline" style={{ fontSize: 25 }} />
+                    <Text style={{ fontSize: 18, fontWeight: "bold" }}>
+                      إستلام المنتجات
+                    </Text>
+                  </>
+                )}
+                {buttonLoading && (
+                  <Text style={{ fontSize: 18, fontWeight: "bold" }}>
+                    جاري التحميل...
+                  </Text>
+                )}
+              </View>
+            </TouchableOpacity>
             <View
               style={{
-                width: "100%",
-                gap: 8,
-                padding: 12,
+                padding: 8,
                 borderRadius: 8,
-                backgroundColor: "#4FFFB0",
-                display: "flex",
-                flexDirection: "row",
+                minWidth: 60,
                 alignItems: "center",
                 justifyContent: "center",
+                backgroundColor: "#4FFFB0",
               }}
             >
-              {!buttonLoading && (
-                <>
-                  <Icon name="cart-outline" style={{ fontSize: 25 }} />
-                  <Text style={{ fontSize: 18, fontWeight: "bold" }}>
-                    إستلام المنتجات
-                  </Text>
-                </>
-              )}
-              {buttonLoading && (
-                <Text style={{ fontSize: 18, fontWeight: "bold" }}>
-                  جاري التحميل...
-                </Text>
-              )}
+              <Text>{totalPoints}</Text>
             </View>
-          </TouchableOpacity>
+          </View>
         </View>
       </View>
     </ThemedView>

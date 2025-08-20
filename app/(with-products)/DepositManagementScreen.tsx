@@ -1,5 +1,6 @@
-import { fetchDeposits, homePageStats } from "@/utils/functions"; // Adjust path to your functions.ts
+import { deleteDeposit, fetchDeposits, homePageStats } from "@/utils/functions"; // Adjust path to your functions.ts
 import {
+  Alert,
   FlatList,
   Pressable,
   SafeAreaView,
@@ -20,6 +21,7 @@ import { useProducts } from "@/contexts/ProductContext";
 import Icon from "react-native-vector-icons/MaterialCommunityIcons";
 
 import React from "react";
+
 
 const DepositManagementScreen = () => {
   const { products } = useProducts();
@@ -71,60 +73,97 @@ const DepositManagementScreen = () => {
         </TouchableOpacity>
 
         {isExpanded && stats && (
-          <View style={styles.expandedContent}>
-            <View style={[styles.square, { backgroundColor: "#9C27B0" }]}>
-              <TouchableOpacity
-                onPress={() =>
-                  navigateToPage("/depositPostponedPoints", {
-                    userId: deposit.userId,
-                  })
-                }
-              >
-                <View style={{ alignItems: "center" }}>
-                  <ThemedText style={styles.squareText}>
-                    النقاط المؤجلة
-                  </ThemedText>
-                  <ThemedText type="subtitle" style={styles.squareValue}>
-                    {stats.postponedPoints}
-                  </ThemedText>
-                </View>
-              </TouchableOpacity>
+          <View style={styles.expandedContainer}>
+            <View style={styles.expandedContent}>
+              <View style={[styles.square, { backgroundColor: "#9C27B0" }]}>
+                <TouchableOpacity
+                  onPress={() =>
+                    navigateToPage("/depositPostponedPoints", {
+                      userId: deposit.userId,
+                    })
+                  }
+                >
+                  <View style={{ alignItems: "center" }}>
+                    <ThemedText style={styles.squareText}>
+                      النقاط المؤجلة
+                    </ThemedText>
+                    <ThemedText type="subtitle" style={styles.squareValue}>
+                      {stats.postponedPoints}
+                    </ThemedText>
+                  </View>
+                </TouchableOpacity>
+              </View>
+              <View style={[styles.square, { backgroundColor: "#FF9800" }]}>
+                <TouchableOpacity
+                  onPress={() =>
+                    navigateToPage("/depositProducts", { userId: deposit.userId })
+                  }
+                >
+                  <View style={{ alignItems: "center" }}>
+                    <ThemedText style={styles.squareText}>
+                      المنتجات الباقية
+                    </ThemedText>
+                    <ThemedText type="subtitle" style={styles.squareValue}>
+                      {stats.depositProductsCount}
+                    </ThemedText>
+                  </View>
+                </TouchableOpacity>
+              </View>
+              <View style={[styles.square, { backgroundColor: "#2196F3" }]}>
+                <TouchableOpacity
+                  onPress={() =>
+                    navigateToPage("/depositTransactions", {
+                      userId: deposit.userId,
+                      currentDeptAmount: stats.depositAmount,
+                    })
+                  }
+                >
+                  <View style={{ alignItems: "center" }}>
+                    <ThemedText style={styles.squareText}>
+                      الرصيد المالي
+                    </ThemedText>
+                    <ThemedText type="subtitle" style={styles.squareValue}>
+                      {stats.depositAmount}
+                    </ThemedText>
+                  </View>
+                </TouchableOpacity>
+              </View>
             </View>
-            <View style={[styles.square, { backgroundColor: "#FF9800" }]}>
-              <TouchableOpacity
-                onPress={() =>
-                  navigateToPage("/depositProducts", { userId: deposit.userId })
-                }
-              >
-                <View style={{ alignItems: "center" }}>
+            <TouchableOpacity
+              onPress={() => {
+                Alert.alert(
+                  "تأكيد الحذف",
+                  "هل أنت متأكد أنك تريد حذف هذا الصندوق؟",
+                  [
+                    {
+                      text: "إلغاء",
+                      style: "cancel",
+                    },
+                    {
+                      text: "نعم، احذف",
+                      style: "destructive",
+                      onPress: () => deleteDeposit(deposit.userId),
+                    },
+                  ],
+                  { cancelable: true }
+                );
+              }}
+            >
+              <View style={[styles.square, { backgroundColor: "#f32821ff", width: "100%", minHeight: 42 }]}>
+                <View style={{ alignItems: "center", flexDirection: "row", gap: 4 }}>
                   <ThemedText style={styles.squareText}>
-                    المنتجات الباقية
+                    حذف الصندوق
                   </ThemedText>
-                  <ThemedText type="subtitle" style={styles.squareValue}>
-                    {stats.depositProductsCount}
-                  </ThemedText>
+                  <Icon
+                    name="trash-can-outline"
+                    style={{
+                      fontSize: 24,
+                      color: "white"
+                    }}
+                  />
                 </View>
-              </TouchableOpacity>
-            </View>
-            <View style={[styles.square, { backgroundColor: "#2196F3" }]}>
-              <TouchableOpacity
-                onPress={() =>
-                  navigateToPage("/depositTransactions", {
-                    userId: deposit.userId,
-                    currentDeptAmount: stats.depositAmount,
-                  })
-                }
-              >
-                <View style={{ alignItems: "center" }}>
-                  <ThemedText style={styles.squareText}>
-                    الرصيد المالي
-                  </ThemedText>
-                  <ThemedText type="subtitle" style={styles.squareValue}>
-                    {stats.depositAmount}
-                  </ThemedText>
-                </View>
-              </TouchableOpacity>
-            </View>
+              </View>
+            </TouchableOpacity>
           </View>
         )}
 
@@ -207,6 +246,9 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: "bold",
     textAlign: "right",
+  },
+  expandedContainer: {
+    justifyContent: "space-between",
   },
   expandedContent: {
     paddingTop: 8,

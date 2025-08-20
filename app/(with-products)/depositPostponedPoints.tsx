@@ -1,18 +1,18 @@
-import { useEffect, useState } from "react";
-import { StyleSheet, View, Text, TouchableOpacity } from "react-native";
-import { ThemedView } from "@/components/ThemedView";
 import DepositProductListing from "@/components/DepositProductListing";
+import { ThemedView } from "@/components/ThemedView";
+import { useEffect, useState } from "react";
+import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
 import Icon from "react-native-vector-icons/MaterialCommunityIcons";
 
-import { router, useLocalSearchParams } from "expo-router";
-import { AdminAddPoints } from "@/utils/functions";
-import { DepositProduct, Order, Product } from "@/utils/types";
-import React from "react";
 import HeaderBox from "@/components/HeaderBox";
 import useAdminCheck from "@/contexts/useAdminCheck";
 import { db } from "@/firebaseConfig";
+import { AdminAddPoints } from "@/utils/functions";
+import { DepositProduct, Order, Product } from "@/utils/types";
+import { router, useLocalSearchParams } from "expo-router";
 import { doc, getDoc } from "firebase/firestore";
+import React from "react";
 
 export default function DepositPostponedPointsScreen() {
   const { userId } = useLocalSearchParams();

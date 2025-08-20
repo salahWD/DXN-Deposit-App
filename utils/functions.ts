@@ -1,32 +1,32 @@
+import { db } from "@/firebaseConfig";
 import {
-  getDoc,
-  doc,
-  onSnapshot,
-  collection,
-  getDocs,
-  updateDoc,
   addDoc,
+  arrayUnion,
+  collection,
   deleteDoc,
+  doc,
+  getDoc,
+  getDocs,
+  onSnapshot,
+  orderBy,
+  query,
   setDoc,
   Unsubscribe,
-  arrayUnion,
-  query,
+  updateDoc,
   where,
-  orderBy,
 } from "firebase/firestore";
-import { db } from "@/firebaseConfig";
 
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import {
-  Product,
-  Order,
-  Deposit,
-  Transaction,
-  DepositProduct,
-  TransactionOrder,
-  OrderProducts,
   Action,
+  Deposit,
+  DepositProduct,
+  Order,
+  OrderProducts,
+  Product,
+  Transaction,
+  TransactionOrder,
 } from "@/utils/types";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 export const getUserSession = async () => {
   return await AsyncStorage.getItem("userId");
@@ -100,67 +100,26 @@ export const depositAddProductsOrder = async (
 export const submitPointsOrder = async (
   userId: string | number,
   orderMemberId: string | number,
-  orderProducts: Order[]
+  OrderMemberName: string,
+  orderProducts: OrderProducts[]
 ) => {
   if (orderProducts.length === 0) {
     alert("لم يتم اختيار اي منتجات!");
     return false;
   }
-  console.log(orderProducts);
+  console.log("orderProducts submitted to db is: ", orderProducts);
 
   await addDoc(collection(db, "pointOrders"), {
     userId,
     orderMemberId,
+    OrderMemberName,
     products: orderProducts,
     timestamp: new Date().toISOString(),
   });
 
-  // await addDoc(collection(db, `deposits/${userId}/transactions`), {
-  //   userId: userId,
-  //   amount: -1 * orderAmount,
-  //   note: "سعر طلبية بتاريخ " + new Date().toLocaleDateString() + " وتحتوي على: \n " + newProducts.map((p) => `${p.title} (x${p.count})`).join("\n"),
-  //   created_at: new Date(),
-  // });
-
   alert("تم الطلب!");
   return true;
 };
-
-/* export const AdminAddPoints = async (
-  adminId: string,
-  userId: string,
-  updatedProducts: Order[]
-) => {
-  console.log(updatedProducts, "<== updatedProducts");
-
-  // Filter out products with count <= 0 (removal)
-  const filteredProducts = updatedProducts.filter((product) => product.count > 0);
-
-  const userDepositRef = doc(db, "deposits", userId);
-
-  // Save the final filtered list to Firestore (even if empty)
-  await setDoc(userDepositRef, {
-    products: filteredProducts,
-  }, { merge: true });
-
-  // Log the admin action for auditing
-  await addDoc(collection(db, `deposits/${userId}/actions`), {
-    userId,
-    adminId,
-    actionType: 3, // 1 => order approval | 2 => transaction approval | 3 => points approval | 4 => deposit products received
-    title: "تحديث نقاط الإيداع",
-    notes:
-      filteredProducts.length > 0
-        ? "تم تحديث النقاط بواسطة المشرف:\n" +
-          filteredProducts.map((p) => `${p.title} (x${p.count})`).join("\n")
-        : "تمت إزالة جميع النقاط المؤجلة بواسطة المشرف.",
-    created_at: new Date(),
-  });
-
-  alert("تم حفظ المنتجات بنجاح!");
-  return true;
-}; */
-
 
 export const AdminAddPoints = async (
   adminId: string,
@@ -188,7 +147,10 @@ export const AdminAddPoints = async (
   const updatedMap = groupById(updatedList);
 
   for (const id in updatedMap) {
-    const updated = updatedMap[id][0]; // admin version (only one per product)
+
+    const updated = updatedMap[id][0]; // admin version (only one product per array)
+    // (other maps may haave multi products some with points and other with no and some recieved and other are not)
+
     const existing = currentMap[id] || [];
 
     const totalCurrentCount = existing.reduce((sum, p) => sum + p.count, 0);
@@ -231,9 +193,9 @@ export const AdminAddPoints = async (
 
   // Also keep current products that were completely removed by admin
   const removedIds = Object.keys(currentMap).filter((id) => !(id in updatedMap));
-  for (const id of removedIds) {
-    // Completely removed: do not push anything
-  }
+  // for (const id of removedIds) {
+  // Completely removed: do not push anything
+  // }
 
   // Save to Firestore
   await setDoc(userDepositRef, {
@@ -249,7 +211,7 @@ export const AdminAddPoints = async (
     notes:
       finalProducts.length > 0
         ? "تم تحديث منتجات الإيداع:\n" +
-          finalProducts.map((p) => `${p.title} (x${p.count}) - ${p.received ? "تم استلامه" : "لم يستلم"}`).join("\n")
+        finalProducts.map((p) => `${p.title} (x${p.count}) - ${p.received ? "تم استلامه" : "لم يستلم"}`).join("\n")
         : "تمت إزالة جميع منتجات الإيداع.",
     created_at: new Date(),
   });
@@ -353,11 +315,17 @@ export const approveOrder = async (
   alert("تم قبول الطلب!");
 };
 
+/* 
+  - if deposit has the products:
+    - decrease the count of products in deposit
+    - else add the products to deposit as unreceived and unpointed and increase the dept amount
+*/
 export const approvePointsOrder = async (
   order: Order,
   products: Product[],
   adminId: string
 ) => {
+  console.log("hiiiiiiiiiiiiiii there")
   const userDepositRef = doc(db, "deposits", order.userId);
   const orderRef = doc(db, "pointOrders", order.id);
   const dollarPrice = await getDollarPrice();
@@ -374,20 +342,43 @@ export const approvePointsOrder = async (
       console.log("Deposit document does not exist, creating a new one...");
       await setDoc(userDepositRef, { products: [] });
     }
-
     let newDeptAmount = depositSnap.data()?.deptAmount || 0;
     let orderAmount = 0;
     let notOwnedProducts: OrderProducts[] = [];
     let updatedProducts = [...currentProducts];
+    console.log("currentProducts: ", JSON.stringify(currentProducts))
+    console.log("updatedProducts: ", JSON.stringify(updatedProducts))
 
+    console.log("order.products: ", JSON.stringify(order.products))
     order.products.forEach((orderProduct) => {
+      console.log("orderProduct: ", JSON.stringify(orderProduct))
       const existingIndex = updatedProducts.findIndex(
-        (p) => p.id === orderProduct.id && p.received === true && !p.points
+        (p) => p.id == orderProduct.id && !p.points
       );
+      console.log("existingIndex: ", JSON.stringify(existingIndex))
 
       if (existingIndex !== -1) {
-        if (updatedProducts[existingIndex].count > orderProduct.count) {
+        if (updatedProducts[existingIndex].count >= orderProduct.count) {
+
           updatedProducts[existingIndex].count -= orderProduct.count;
+
+          const notRecievedProductIndex = updatedProducts.findIndex(
+            (p) => p.id == orderProduct.id && p.points
+          );
+          if (notRecievedProductIndex !== -1) {
+            updatedProducts[notRecievedProductIndex].count += orderProduct.count;
+          } else {
+            updatedProducts.push({
+              ...updatedProducts[existingIndex],
+              points: true,
+              count: orderProduct.count
+            });
+          }
+
+          if (updatedProducts[existingIndex].count === 0) {
+            updatedProducts.splice(existingIndex, 1);
+          }
+
         } else {
           // this count of products will be considered as 0 points and already received and it's price is added to the dept
           const notInDepositProductsCount =
@@ -397,29 +388,38 @@ export const approvePointsOrder = async (
             title: orderProduct.title,
             count: notInDepositProductsCount,
           });
+          updatedProducts.push({
+            id: orderProduct.id,
+            points: true,
+            received: false,
+            title: orderProduct.title,
+            count: notInDepositProductsCount,
+          });
+
+          console.log("notInDepositProductsCount: ", notInDepositProductsCount)
           // updatedProducts[existingIndex].count = 0;// set the count to 0
           // or
           // remove the product from deposit products
           updatedProducts = updatedProducts.filter(
             (_, index) => index !== existingIndex
           );
-          const unpointedProductType = updatedProducts.findIndex(
-            (p) => p.id === orderProduct.id && p.received === false && p.points
-          );
-          if (unpointedProductType !== -1) {
-            updatedProducts[unpointedProductType].count +=
-              notInDepositProductsCount;
-          } else {
-            if (notInDepositProductsCount > 0) {
-              updatedProducts.push({
-                id: orderProduct.id,
-                points: true,
-                received: false,
-                title: orderProduct.title,
-                count: notInDepositProductsCount,
-              });
-            }
-          }
+          // const unpointedProductType = updatedProducts.findIndex(
+          //   (p) => p.id == orderProduct.id && p.received == false && p.points
+          // );
+          // if (unpointedProductType !== -1) {
+          //   console.log("fount unpointedProductType: ", unpointedProductType)
+          //   updatedProducts[unpointedProductType].count +=
+          //     notInDepositProductsCount;
+          // } else {
+          //   console.log("did not found unpointedProductType: ", unpointedProductType)
+          //   updatedProducts.push({
+          //     id: orderProduct.id,
+          //     points: true,
+          //     received: false,
+          //     title: orderProduct.title,
+          //     count: notInDepositProductsCount,
+          //   });
+          // }
           orderAmount +=
             notInDepositProductsCount *
             productPrice(
@@ -459,29 +459,23 @@ export const approvePointsOrder = async (
       }
     });
 
-    // let newDeptAmount = order.products.reduce((total, product) => {
-    //   return total + (product.count * productPrice(product.price ?? 0, dollarPrice));
-    // }, depositSnap.data()?.deptAmount || 0);
-
-    console.log("Updated products:", updatedProducts);
     newDeptAmount += orderAmount;
-    console.log("New dept amount:", newDeptAmount);
 
     await updateDoc(userDepositRef, {
       products: updatedProducts,
       deptAmount: newDeptAmount,
     });
 
-    await addDoc(collection(db, `deposits/${order.userId}/transactions`), {
-      userId: order.userId,
-      amount: -1 * orderAmount,
-      note:
-        "سعر تنزيل نقاط غير مملوكة بتاريخ " +
-        new Date().toLocaleDateString() +
-        " وتحتوي على: \n " +
-        notOwnedProducts.map((p) => `${p.title} (x${p.count})`).join("\n"),
-      created_at: new Date(),
-    });
+    // await addDoc(collection(db, `deposits/${order.userId}/transactions`), {
+    //   userId: order.userId,
+    //   amount: -1 * orderAmount,
+    //   note:
+    //     "سعر تنزيل نقاط غير مملوكة بتاريخ " +
+    //     new Date().toLocaleDateString() +
+    //     " وتحتوي على: \n " +
+    //     notOwnedProducts.map((p) => `${p.title} (x${p.count})`).join("\n"),
+    //   created_at: new Date(),
+    // });
 
     await setDoc(doc(collection(db, `deposits/${order.userId}/actions`)), {
       userId: order.userId,
@@ -499,9 +493,12 @@ export const approvePointsOrder = async (
 
     // Remove order
     await deleteDoc(orderRef);
+
+    alert("تم قبول الطلب!");
+  } else {
+    alert("الطلب غير موجود في قاعدة البيانات!");
   }
 
-  alert("تم قبول الطلب!");
 };
 
 export const homePageStats = async (userId: string, products: any[]) => {
@@ -533,10 +530,10 @@ export const homePageStats = async (userId: string, products: any[]) => {
         depositProducts.reduce((value: number, prod: DepositProduct) => {
           console.log(value, "<== value");
           console.log(prod, "<== prod");
-          if (prod.received && !prod.points) {
+          if (!prod.points) {
             value +=
               products.find((item, indx) => item.id == prod.id)?.points *
-                prod.count || 0;
+              prod.count || 0;
           }
           return value;
         }, 0) * 100
@@ -914,7 +911,7 @@ export async function fetchUserDepositAndOrders(
           return acc;
         }, {} as Record<string | number, number>)
       );
-      
+
       onError(null);
     } else {
       onProductsChange([]);
@@ -1024,8 +1021,8 @@ export async function adminMarkProductsAsReceived(
 
     const changedProducts = updatedProducts.reduce<{ id: string; count: number; title: string }[]>(
       (diffs, updated) => {
-        const current = currentProducts.find((p) => p.id === updated.id);
-        if (!current || current.count !== updated.count) {
+        const current = currentProducts.find((p) => p.id == updated.id);
+        if (!current || current.count != updated.count) {
           diffs.push({
             id: updated.id,
             count: updated.count,
@@ -1192,7 +1189,8 @@ export async function depositSubmitTransaction(
   userId: string,
   adminId: string,
   amount: number,
-  note?: string
+  note?: string,
+  noAlert: boolean = false
 ) {
   const depositRef = doc(db, "deposits", userId);
   const depositSnap = await getDoc(depositRef);
@@ -1233,7 +1231,9 @@ export async function depositSubmitTransaction(
     created_at: new Date(),
   });
 
-  alert("تم قبول السداد!");
+  if (!noAlert) {
+    alert("تم قبول السداد!");
+  }
   return true;
 }
 
@@ -1358,15 +1358,17 @@ export async function getReportStats(products: Product[]) {
 
       if (deptAmount && typeof deptAmount === "number") {
         retrun.totalDeptAmount += deptAmount;
-        retrun.deptsDetails.push({id: doc.id, deptAmount: Math.round(deptAmount)});
+        retrun.deptsDetails.push({ id: doc.id, deptAmount: Math.round(deptAmount) });
       }
       if (unreceivedProducts && typeof unreceivedProducts === "number") {
         // retrun.deptsDetails.push({id: doc.id, deptAmount: Math.round(deptAmount)});
         retrun.totalProducts += unreceivedProducts;
       }
-      retrun.productsDetails.push({id: doc.id, products: data?.products?.filter((item: {received: Boolean}) => {
-        return !item.received;
-      })})
+      retrun.productsDetails.push({
+        id: doc.id, products: data?.products?.filter((item: { received: Boolean }) => {
+          return !item.received;
+        })
+      })
       if (postponedPoints && typeof postponedPoints === "number") {
         retrun.totalPoints += postponedPoints;
       }
@@ -1383,4 +1385,18 @@ export async function getReportStats(products: Product[]) {
   //   deptsDetails: retrun.deptsDetails,
   //   productsDetails: retrun.productsDetails,
   // };
+}
+
+export async function deleteDeposit(userId: string) {
+
+  try {
+
+    const orderRef = doc(db, "deposits", userId);
+    await deleteDoc(orderRef);
+
+    alert("تم حذف الصندوق!");
+
+  } catch (error) {
+    console.error("Error deleting deposit:", error);
+  }
 }

@@ -24,7 +24,7 @@ export default function HomeScreen() {
   const [depositPoints, setDepositPoints] = useState(0);
   const [depositAmount, setDepositAmount] = useState(0);
 
-  const userPages: Array<{id: number, title: string, color: string, route: string, value: string | number | ReactElement}> = [
+  const userPages: Array<{ id: number, title: string, color: string, route: string, value: string | number | ReactElement }> = [
     {
       id: 0,
       title: "النقاط المؤجلة",
@@ -77,7 +77,7 @@ export default function HomeScreen() {
       value: "الأرشيف",
     },
   ];
-  const adminPages: Array<{id: number, title: string, color: string, route: string, value: string}> = [
+  const adminPages: Array<{ id: number, title: string, color: string, route: string, value: string }> = [
     {
       id: 0,
       title: "طلبات تنزيل النقاط",
@@ -127,6 +127,7 @@ export default function HomeScreen() {
       try {
         const stats = await homePageStats(userId, products);
         if (stats) {
+          console.log(stats)
           setDepositProductsCount(stats.depositProductsCount);
           setDepositPoints(stats.postponedPoints);
           setDepositAmount(stats.depositAmount);
@@ -199,7 +200,7 @@ export default function HomeScreen() {
           +905444482988
         </Text>
         <Text style={{ color: "white", fontSize: 18, textAlign: "center" }}>
-          العنوان: 
+          العنوان:
         </Text>
         <Text style={{ color: "#e7e7e7", fontSize: 14, width: "100%", textAlign: "center" }}>
           اسطنبول - ميدان اسنيورت - هان بلاس (البناء الاسود) - طابق 13 - مكتب رقم 381{"\n"}{"\n"}
@@ -207,7 +208,7 @@ export default function HomeScreen() {
           kat: 13 ofis. 381, 34510 Esenyurt/İstanbul
         </Text>
         <Text style={{ color: "white", fontSize: 18, textAlign: "center" }}>
-          TEB Bank: 
+          TEB Bank:
         </Text>
         <Text style={{ color: "#e7e7e7", fontSize: 14, width: "100%", textAlign: "center" }}>
           UPPER HANDS GİDA VE GENEL TİCARET LİMİTED ŞİRKETİ
@@ -215,7 +216,7 @@ export default function HomeScreen() {
           TR320003200000000086127100
         </Text>
         <Text style={{ color: "white", fontSize: 18, textAlign: "center" }}>
-          Ziraat Bank: 
+          Ziraat Bank:
         </Text>
         <Text style={{ color: "#e7e7e7", fontSize: 14, width: "100%", textAlign: "center" }}>
           UPPER HANDS GİDA VE GENEL TİCARET LİMİTED ŞİRKETİ

@@ -1,29 +1,68 @@
-import { useState } from "react";
-import { getAllUsersDebts } from "@/utils/functions";
 import { router, useLocalSearchParams } from "expo-router";
+import { useState } from "react";
 
 import { ThemedView } from "@/components/ThemedView";
 import {
-  StyleSheet,
-  View,
-  TouchableOpacity,
-  Text,
-  TextInput,
-  Pressable,
   BackHandler,
   ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View
 } from "react-native";
 
-import React, { useEffect } from "react";
+import { depositSubmitTransaction } from "@/utils/functions";
+
 import HeaderBox from "@/components/HeaderBox";
-import { useProducts } from "@/contexts/ProductContext";
+import useAdminCheck from "@/contexts/useAdminCheck";
+import React, { useEffect } from "react";
 
 export default function Reports() {
   const [error, setError] = useState("");
   const [debts, setDebts] = useState<any[]>([]);
+  const [expandedDeposit, setExpandedDeposit] = useState<string | null>(null);
   const [totalDebts, setTotalDebts] = useState(0);
-  const { products } = useProducts();
+  const { userId: adminId } = useAdminCheck();
   const { data } = useLocalSearchParams();
+
+
+  const [loading, setLoading] = useState(false);
+  const [amount, setAmount] = useState("");
+  const [note, setNote] = useState("");
+
+
+  const handleSend = (userId: string) => {
+    if (!amount || isNaN(parseFloat(amount))) {
+      setError("يرجى إدخال مبلغ صالح");
+      return;
+    }
+
+    setLoading(true);
+    setError("");
+    const makeTransactionOrder = async () => {
+      const res = await depositSubmitTransaction(
+        userId,
+        adminId,
+        parseFloat(amount),
+        note || "",
+        true
+      )
+      if (res) {
+        setLoading(false);
+        alert("تم تقديم طلب السداد!");
+        router.replace("/home");
+      } else {
+        console.log("خطأ في تقديم الطلب");
+      }
+    };
+    makeTransactionOrder();
+  };
+
+
+  const handlePressed = (user: { deptAmount: number, id: string }) => {
+    setExpandedDeposit(expandedDeposit === user.id ? null : user.id);
+  };
 
   useEffect(() => {
     if (data) {
@@ -53,9 +92,8 @@ export default function Reports() {
       return true;
     };
 
-    BackHandler.addEventListener("hardwareBackPress", backAction);
-    return () =>
-      BackHandler.removeEventListener("hardwareBackPress", backAction);
+    const subscription = BackHandler.addEventListener("hardwareBackPress", backAction);
+    return () => subscription.remove();
   }, []);
 
   return (
@@ -73,16 +111,72 @@ export default function Reports() {
           </ThemedView>
         )}
         <ThemedView style={{ ...styles.content, paddingBottom: 12 }}>
-          <ScrollView>
+          <ScrollView contentContainerStyle={{ paddingBottom: 100 }}>
             {debts.map((user, idx) => (
-              <View key={idx} style={{ marginBottom: 12 }}>
-                <View style={styles.card}>
-                  <Text style={styles.title}>المستخدم: {user.id}</Text>
-                  <Text style={styles.price}>
-                    {user.deptAmount * -1}
-                    <Text style={{ fontSize: 10 }}> TL</Text>
-                  </Text>
-                </View>
+              <View key={idx}>
+                <TouchableOpacity onPress={e => { handlePressed(user) }} >
+                  <View style={{ marginBottom: 12 }}>
+                    <View style={styles.card}>
+                      <Text style={styles.title}>المستخدم: {user.id}</Text>
+                      <Text style={styles.price}>
+                        {user.deptAmount * -1}
+                        <Text style={{ fontSize: 10 }}> TL</Text>
+                      </Text>
+                    </View>
+                  </View>
+                </TouchableOpacity>
+                {user.id === expandedDeposit && (
+                  <View style={{ marginBottom: 25 }}>
+                    <ThemedView style={{ gap: 12 }}>
+                      <TextInput
+                        style={{
+                          backgroundColor: "#F3F4F6",
+                          borderColor: "#D1D5DB",
+                          borderWidth: 1,
+                          borderRadius: 8,
+                          paddingVertical: 10,
+                          paddingHorizontal: 14,
+                          fontSize: 16,
+                          color: "#111827",
+                        }}
+                        keyboardType="numeric"
+                        placeholder="أدخل المبلغ"
+                        placeholderTextColor="#9CA3AF"
+                        value={amount}
+                        onChangeText={setAmount}
+                      />
+                      <TextInput
+                        style={{
+                          backgroundColor: "#F3F4F6",
+                          borderColor: "#D1D5DB",
+                          borderWidth: 1,
+                          borderRadius: 8,
+                          paddingVertical: 10,
+                          paddingHorizontal: 14,
+                          fontSize: 16,
+                          color: "#111827",
+                        }}
+                        placeholder="الملاحظات (اختياري)"
+                        placeholderTextColor="#9CA3AF"
+                        value={note}
+                        onChangeText={setNote}
+                      />
+                      <TouchableOpacity
+                        onPress={e => handleSend(user.id)}
+                        disabled={loading}
+                        style={{
+                          backgroundColor: "#06b6d4",
+                          paddingVertical: 12,
+                          borderRadius: 8,
+                          alignItems: "center",
+                        }}
+                      >
+                        <Text style={{ color: "#fff", fontSize: 16, fontWeight: "600" }}>
+                          {loading ? "جاري التحميل..." : "إرسال"}
+                        </Text>
+                      </TouchableOpacity>
+                    </ThemedView>
+                  </View>)}
               </View>
             ))}
             <View>

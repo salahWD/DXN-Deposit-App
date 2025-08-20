@@ -1,28 +1,34 @@
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import React, { useEffect, useState } from "react";
 import {
+  Button,
   KeyboardAvoidingView,
   StyleSheet,
-  View,
   TextInput,
-  Button,
+  View,
 } from "react-native";
-import { useState, useEffect } from "react";
-import AsyncStorage from "@react-native-async-storage/async-storage";
-import React from "react";
 
 interface OrderFormProps {
-  onSubmit: (data: string) => void;
+  onSubmit: (memberId: string, memberName: string) => void;
 }
 
 export default function OrderForm({ onSubmit }: OrderFormProps) {
   const [memberId, setMemberId] = useState("");
+  const [memberName, setMemberName] = useState("");
 
   useEffect(() => {
     const fetchLastOrderMemberId = async () => {
       const lastOrderMemberId = await AsyncStorage.getItem(
         "last_order_member_id"
       );
+      const lastOrderMemberName = await AsyncStorage.getItem(
+        "last_order_member_name"
+      );
       if (lastOrderMemberId) {
         setMemberId(lastOrderMemberId);
+      }
+      if (lastOrderMemberName) {
+        setMemberName(lastOrderMemberName);
       }
     };
 
@@ -32,7 +38,12 @@ export default function OrderForm({ onSubmit }: OrderFormProps) {
   const handleSubmit = async () => {
     if (memberId.trim()) {
       await AsyncStorage.setItem("last_order_member_id", memberId);
-      onSubmit(memberId);
+      await AsyncStorage.setItem("last_order_member_name", memberName);
+      if (!memberId.trim() || !memberName.trim()) {
+        alert("يرجى إدخال رقم العضوية واسم العضو");
+        return;
+      }
+      onSubmit(memberId, memberName);
     }
   };
 
@@ -45,6 +56,12 @@ export default function OrderForm({ onSubmit }: OrderFormProps) {
           value={memberId}
           onChangeText={setMemberId}
           placeholder="رقم العضوية"
+        />
+        <TextInput
+          style={styles.input}
+          value={memberName}
+          onChangeText={setMemberName}
+          placeholder="إسم العضو"
         />
         <Button title="تنزيل النقاط" onPress={handleSubmit} />
       </View>

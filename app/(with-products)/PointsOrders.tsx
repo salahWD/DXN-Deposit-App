@@ -8,16 +8,16 @@ import {
 
 import Icon from "react-native-vector-icons/MaterialCommunityIcons";
 
-import useAdminCheck from "@/contexts/useAdminCheck";
-import { useProducts } from "@/contexts/ProductContext";
 import HeaderBox from "@/components/HeaderBox";
-import React, { useEffect, useState } from "react";
-import { Order, OrderProducts } from "@/utils/types";
+import { useProducts } from "@/contexts/ProductContext";
+import useAdminCheck from "@/contexts/useAdminCheck";
 import {
   approvePointsOrder,
   rejectPointsOrder,
   subscribeToPointsOrders,
 } from "@/utils/functions";
+import { Order, OrderProducts } from "@/utils/types";
+import React, { useEffect, useState } from "react";
 
 const pointsOrders = () => {
   const { isLoading, userId: adminId } = useAdminCheck();
@@ -55,6 +55,9 @@ const pointsOrders = () => {
                   borderBottomWidth: StyleSheet.hairlineWidth,
                 }}
               />
+              {order?.orderMemberName && (<Text style={{ textAlign: "center", color: "#777" }}>
+                الاسم: {order.orderMemberName}
+              </Text>)}
               <Text style={{ textAlign: "center", color: "#777" }}>
                 العضوية: {order?.orderMemberId}
               </Text>

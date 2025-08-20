@@ -1,24 +1,22 @@
-import { useState } from "react";
-import { getReportStats } from "@/utils/functions";
 import useAdminCheck from "@/contexts/useAdminCheck";
+import { getReportStats } from "@/utils/functions";
 import { router } from "expo-router";
+import { useState } from "react";
 
 import { ThemedView } from "@/components/ThemedView";
 import {
-  StyleSheet,
-  View,
-  TouchableOpacity,
-  Text,
-  TextInput,
-  Pressable,
   BackHandler,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View
 } from "react-native";
 
-import React, { useEffect } from "react";
 import HeaderBox from "@/components/HeaderBox";
 import { ThemedText } from "@/components/ThemedText";
 import { useProducts } from "@/contexts/ProductContext";
 import { DepositProduct } from "@/utils/types";
+import React, { useEffect } from "react";
 
 export default function Reports() {
   const [error, setError] = useState("");
@@ -83,12 +81,12 @@ export default function Reports() {
           </ThemedView>
         )}
         <ThemedView style={{ ...styles.content, paddingBottom: 12 }}>
-          <View style={[styles.square, { backgroundColor: "brown" }]}>
+          <View style={{ borderRadius: 10, backgroundColor: "brown" }}>
             <TouchableOpacity
               disabled={!loaded}
               onPress={handleRoute("/depts", deptsDetails)}
             >
-              <View style={{ alignItems: "center" }}>
+              <View style={{ ...styles.square, alignItems: "center" }}>
                 <ThemedText style={styles.squareText}>كل الديون</ThemedText>
                 <ThemedText type="subtitle" style={styles.squareValue}>
                   {totalDept ? Math.round(totalDept) + " TL" : "لا يوجد دين"}
@@ -96,12 +94,12 @@ export default function Reports() {
               </View>
             </TouchableOpacity>
           </View>
-          <View style={[styles.square, { backgroundColor: "orange" }]}>
+          <View style={{ borderRadius: 10, backgroundColor: "orange" }}>
             <TouchableOpacity
               disabled={!loaded}
               onPress={handleRoute("/depositProducts", productsDetails)}
             >
-              <View style={{ alignItems: "center" }}>
+              <View style={{ ...styles.square, alignItems: "center" }}>
                 <ThemedText style={styles.squareText}>
                   كل المنتجات المتبقية
                 </ThemedText>
@@ -111,12 +109,12 @@ export default function Reports() {
               </View>
             </TouchableOpacity>
           </View>
-          <View style={[styles.square, { backgroundColor: "darkblue" }]}>
+          <View style={{ borderRadius: 10, backgroundColor: "darkblue" }}>
             <TouchableOpacity
               disabled={!loaded}
               onPress={handleRoute("/points", productsDetails)}
             >
-              <View style={{ alignItems: "center" }}>
+              <View style={{ ...styles.square, alignItems: "center" }}>
                 <ThemedText style={styles.squareText}>
                   كل النقاط المعلقة
                 </ThemedText>
@@ -164,7 +162,6 @@ const styles = StyleSheet.create({
     minHeight: 110,
     justifyContent: "center",
     alignItems: "center",
-    borderRadius: 10,
     marginBottom: 10,
     paddingVertical: 12,
     padding: 8,

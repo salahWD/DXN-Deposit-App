@@ -1,24 +1,21 @@
-import { useState } from "react";
 import { router, useLocalSearchParams } from "expo-router";
+import { useState } from "react";
 
 import { ThemedView } from "@/components/ThemedView";
 import {
-  StyleSheet,
-  View,
-  TouchableOpacity,
-  Text,
-  TextInput,
-  Pressable,
   BackHandler,
-  ScrollView,
   FlatList,
+  Pressable,
+  StyleSheet,
+  Text,
+  View
 } from "react-native";
 
-import React, { useEffect } from "react";
 import HeaderBox from "@/components/HeaderBox";
-import { useProducts } from "@/contexts/ProductContext";
-import { ThemedText } from "@/components/ThemedText";
 import ProductCard from "@/components/ProductCard";
+import { ThemedText } from "@/components/ThemedText";
+import { useProducts } from "@/contexts/ProductContext";
+import React, { useEffect } from "react";
 
 export default function Reports() {
   const [error, setError] = useState("");
@@ -47,9 +44,8 @@ export default function Reports() {
       return true;
     };
 
-    BackHandler.addEventListener("hardwareBackPress", backAction);
-    return () =>
-      BackHandler.removeEventListener("hardwareBackPress", backAction);
+    const subscription = BackHandler.addEventListener("hardwareBackPress", backAction);
+    return () => subscription.remove();
   }, []);
 
   const handleFilterPress = (value: boolean) => {
@@ -78,14 +74,14 @@ export default function Reports() {
             gap: 6,
           }}
         >
-          <View style={{ ...styles.squareContainer, opacity: filter ? 1 : 0.25, backgroundColor: filter ? "darkgray" : "gray" }}>
+          <View style={{ ...styles.squareContainer, opacity: filter ? 1 : 0.25, backgroundColor: filter ? "#E6E6FAab" : "#777" }}>
             <Pressable style={styles.square} onPress={() => handleFilterPress(true)}>
               <View style={{ alignItems: "center" }}>
                 <ThemedText style={styles.squareText}>حسب المستخدم</ThemedText>
               </View>
             </Pressable>
           </View>
-          <View style={{ ...styles.squareContainer, opacity: filter ? 0.25 : 1, backgroundColor: filter ? "gray" : "darkgray" }}>
+          <View style={{ ...styles.squareContainer, opacity: filter ? 0.25 : 1, backgroundColor: filter ? "#777" : "#E6E6FAab" }}>
             <Pressable style={styles.square} onPress={() => handleFilterPress(false)}>
               <View style={{ alignItems: "center" }}>
                 <Text style={styles.squareText}>حسب المنتج</Text>
@@ -93,7 +89,7 @@ export default function Reports() {
             </Pressable>
           </View>
         </View>
-        <View style={{flex: 1}}>
+        <View style={{ flex: 1 }}>
           {(products.length === 0 && !filter) || (deposits?.length === 0 && filter) ? (
             <ThemedView style={{ ...styles.content, flex: 1 }}>
               <Text style={styles.dangerAlert}>لا يوجد بيانات لعرضها</Text>
@@ -106,18 +102,18 @@ export default function Reports() {
                 data={products}
                 renderItem={({ item: product }) => {
                   let availableCount = 0;
-                    deposits?.forEach((deposit) => {
-                      deposit?.products && deposit?.products.forEach((prod: { id: string; received: boolean; count: number; }) => {
-                        if (prod.id == product.id && prod.received == false && prod.count > 0) {
-                          availableCount += prod.count;
-                        }
-                      })
-                    });
+                  deposits?.forEach((deposit) => {
+                    deposit?.products && deposit?.products.forEach((prod: { id: string; received: boolean; count: number; }) => {
+                      if (prod.id == product.id && prod.received == false && prod.count > 0) {
+                        availableCount += prod.count;
+                      }
+                    })
+                  });
 
                   return (
                     <ProductCard
                       key={`${product.id}-${resetKey}`}
-                      handleChangedCount={() => {}}
+                      handleChangedCount={() => { }}
                       depositCount={availableCount}
                       displayOnly={true}
                       product={product}
@@ -147,7 +143,7 @@ export default function Reports() {
 
                   return (
                     <View style={styles.card}>
-                      <Text style={styles.title}>المستخدم: {deposit.id}</Text>
+                      <Text style={styles.title}>{deposit.id}</Text>
                       <View>
                         {deposit?.products?.map(
                           (prod: { received: any; title: string; count: number }, idx: number) => {
@@ -198,7 +194,7 @@ const styles = StyleSheet.create({
     paddingTop: 10,
     textAlign: "center",
     borderColor: "#F88379",
-    backgroundColor: "#F8837960",
+    backgroundColor: "#f884792e",
   },
   squareContainer: {
     flex: 1,
@@ -217,7 +213,7 @@ const styles = StyleSheet.create({
     padding: 8,
   },
   squareText: {
-    color: "white",
+    color: "#333",
     fontSize: 18,
     textAlign: "center",
     fontWeight: "bold",

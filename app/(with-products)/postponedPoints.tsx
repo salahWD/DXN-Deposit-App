@@ -1,76 +1,92 @@
-import { useState } from "react";
-import { StyleSheet, View, Pressable, Text, Modal } from "react-native";
-import { ThemedText } from "@/components/ThemedText";
-import { ThemedView } from "@/components/ThemedView";
-import ProductListing from "@/components/ProductListing";
-
+import { router } from "expo-router";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
+import { Modal, Pressable, StyleSheet, Text, View } from "react-native";
 import Icon from "react-native-vector-icons/MaterialCommunityIcons";
 
-import { router } from "expo-router";
-import { submitPointsOrder } from "@/utils/functions";
-import { Order, Product } from "@/utils/types";
-import React from "react";
-import OrderForm from "@/components/OrderForm";
-import useAdminCheck from "@/contexts/useAdminCheck";
 import HeaderBox from "@/components/HeaderBox";
+import OrderForm from "@/components/OrderForm";
+import ProductListing from "@/components/ProductListing";
+import { ThemedView } from "@/components/ThemedView";
+import { useProducts } from "@/contexts/ProductContext";
+import useAdminCheck from "@/contexts/useAdminCheck";
+import { submitPointsOrder } from "@/utils/functions";
+import { Product } from "@/utils/types";
 
 export default function PostponedPointsScreen() {
-  const [orderProducts, setOrderProducts] = useState<Order[]>([]); // Array of {id, title, count}
+  const { products: productsData } = useProducts();
+  const { userId } = useAdminCheck();
+
+  const [selectedProducts, setSelectedProducts] = useState<Record<string, number>>({});
+  const [totalPoints, setTotalPoints] = useState(0);
   const [resetKey, setResetKey] = useState(0);
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [sendRequestLoading, setSendRequestLoading] = useState(false);
 
-  const { userId } = useAdminCheck();
-
-  const handleChangedOrder = (product: Product, count: number) => {
-    setOrderProducts((prev) => {
-      const existingProduct = prev.find((p) => p.id === product.id);
-      if (existingProduct) {
-        if (count === 0) {
-          // Remove product if count is 0
-          return prev.filter((p) => p.id !== product.id);
-        }
-        // Update count for existing product
-        return prev.map((p) => (p.id === product.id ? { ...p, count } : p));
-      }
-      if (count > 0) {
-        // Add new product if count > 0
-        return [...prev, { id: product.id, title: product.title.ar, count }];
-      }
-      return prev;
+  // Derived: orderProducts based on selectedProducts
+  const orderProducts = useMemo(() => {
+    return Object.entries(selectedProducts).map(([id, count]) => {
+      const product = productsData.find((p) => p.id == id);
+      return {
+        id: Number(id),
+        title: product?.title?.ar || "",
+        count,
+      };
     });
-    console.log("order - handleChangedOrder - changed the OrderProducts state");
-  };
+  }, [selectedProducts, productsData]);
 
-  const handleSubmitOrder = async (orderMemberId: string) => {
-    if (userId) {
-      if (!sendRequestLoading) {
-        setSendRequestLoading(true);
-        const res = await submitPointsOrder(
-          userId,
-          orderMemberId,
-          orderProducts
-        );
-        setOrderProducts([]);
-        setResetKey((prev) => prev + 1);
-        if (res) {
-          setSendRequestLoading(false);
-          router.replace("/home");
-        }
+  useEffect(() => {
+    console.log("=========== orderProducts ==========");
+    console.log(orderProducts);
+  }, [orderProducts]);
+
+  // Derived: totalPoints based on selectedProducts
+  useEffect(() => {
+    const total = Object.entries(selectedProducts).reduce((sum, [id, count]) => {
+      const product = productsData.find((p) => p.id == id);
+      return product ? sum + product.points * count : sum;
+    }, 0);
+    setTotalPoints(total);
+    console.log("calculating total points", total);
+  }, [selectedProducts, productsData]);
+
+  // Handles product quantity changes
+  const handleChangedOrder = useCallback((product: Product, count: number) => {
+    setSelectedProducts((prev) => {
+      const updated = { ...prev };
+      if (count > 0) {
+        updated[product.id] = count;
+      } else {
+        delete updated[product.id];
       }
-    } else {
+      return updated;
+    });
+  }, []);
+
+  // Submits the order
+  const handleSubmitOrder = async (orderMemberId: string, memberName: string) => {
+    if (!userId) {
       console.log("you have no user id please login first");
       router.replace("/");
+      return;
     }
+
+    if (sendRequestLoading) return;
+
+    setSendRequestLoading(true);
+    console.log("=========== orderProducts ==========");
+    console.log(orderProducts);
+
+    const res = await submitPointsOrder(userId, orderMemberId, memberName, orderProducts);
+    if (res) {
+      setSelectedProducts({});
+      setResetKey((prev) => prev + 1);
+      router.replace("/home");
+    }
+    setSendRequestLoading(false);
   };
 
-  const handleOpenModal = () => {
-    setIsModalVisible(true);
-  };
-
-  const handleCloseModal = () => {
-    setIsModalVisible(false);
-  };
+  const handleOpenModal = () => setIsModalVisible(true);
+  const handleCloseModal = () => setIsModalVisible(false);
 
   return (
     <ThemedView style={styles.container}>
@@ -82,26 +98,41 @@ export default function PostponedPointsScreen() {
 
       <ThemedView style={styles.buttonContainer}>
         <View>
-          <Pressable onPress={handleOpenModal}>
+          <View style={{ flexDirection: "row", justifyContent: "space-between", gap: 8 }}>
+            <Pressable onPress={handleOpenModal}>
+              <View
+                style={{
+                  width: "100%",
+                  gap: 8,
+                  padding: 12,
+                  borderRadius: 8,
+                  backgroundColor: "#4FFFB0",
+                  display: "flex",
+                  flexDirection: "row",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                <Icon name="cart-outline" style={{ fontSize: 25 }} />
+                <Text style={{ fontSize: 18, fontWeight: "bold" }}>
+                  تنزيل نقاط مؤجلة
+                </Text>
+              </View>
+            </Pressable>
             <View
               style={{
-                width: "100%",
-                gap: 8,
-                padding: 12,
+                padding: 8,
                 borderRadius: 8,
-                backgroundColor: "#4FFFB0",
-                display: "flex",
-                flexDirection: "row",
+                minWidth: 60,
                 alignItems: "center",
                 justifyContent: "center",
+                backgroundColor: "#4FFFB0",
               }}
             >
-              <Icon name="cart-outline" style={{ fontSize: 25 }} />
-              <Text style={{ fontSize: 18, fontWeight: "bold" }}>
-                تنزيل نقاط مؤجلة
-              </Text>
+              <Text>{totalPoints}</Text>
             </View>
-          </Pressable>
+          </View>
+
           <Modal
             visible={isModalVisible}
             transparent={true}
@@ -116,9 +147,9 @@ export default function PostponedPointsScreen() {
             <View style={styles.modalOverlay}>
               <View style={styles.modalContent}>
                 <OrderForm
-                  onSubmit={(value) => {
-                    console.log("Form submitted with value:", value);
-                    handleSubmitOrder(value);
+                  onSubmit={(memberId, memberName) => {
+                    console.log("Form submitted with value:", memberId, "and name: ", memberName);
+                    handleSubmitOrder(memberId, memberName);
                     handleCloseModal();
                   }}
                 />

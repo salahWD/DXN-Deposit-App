@@ -1,48 +1,58 @@
-import { useState } from "react";
+import React, { useMemo, useState } from "react";
 import {
   StyleSheet,
-  View,
-  ScrollView,
-  TouchableOpacity,
-  Pressable,
   Text,
-  Modal,
+  TouchableOpacity,
+  View
 } from "react-native";
-import React from "react";
 
-import { ThemedView } from "@/components/ThemedView";
-import ProductListing from "@/components/ProductListing";
 import HeaderBox from "@/components/HeaderBox";
+import ProductListing from "@/components/ProductListing";
+import { ThemedView } from "@/components/ThemedView";
 import { useProducts } from "@/contexts/ProductContext";
 
 import Icon from "react-native-vector-icons/MaterialCommunityIcons";
 
-import { router } from "expo-router";
-import { depositAddProductsOrder } from "@/utils/functions";
-import { Order, Product } from "@/utils/types";
 import useAdminCheck from "@/contexts/useAdminCheck";
+import { depositAddProductsOrder, productPrice } from "@/utils/functions";
+import { Product } from "@/utils/types";
+import { router } from "expo-router";
+
 
 export default function OrderScreen() {
-  const { products } = useProducts();
-  const [orderProducts, setOrderProducts] = useState<Order[]>([]); // Array of {id, title, count}
+  const { products, dollarPrice } = useProducts();
+  const [orderProducts, setOrderProducts] = useState<{ id: number; title: string; count: number }[]>([]);
   const [resetKey, setResetKey] = useState(0);
   const [buttonLoading, setButtonLoading] = useState(false);
 
   const { userId } = useAdminCheck();
+
+  // Calculate total points and total price
+  const { totalPoints, totalPrice } = useMemo(() => {
+    let points = 0;
+    let price = 0;
+
+    orderProducts.forEach((orderedProduct) => {
+      const product = products.find((p) => p.id === orderedProduct.id);
+      if (product) {
+        points += product.points * orderedProduct.count;
+        price += productPrice(dollarPrice, product.price * orderedProduct.count);
+      }
+    });
+
+    return { totalPoints: points, totalPrice: price };
+  }, [orderProducts, products]);
 
   const handleChangedOrder = (product: Product, count: number) => {
     setOrderProducts((prev) => {
       const existingProduct = prev.find((p) => p.id === product.id);
       if (existingProduct) {
         if (count === 0) {
-          // Remove product if count is 0
           return prev.filter((p) => p.id !== product.id);
         }
-        // Update count for existing product
         return prev.map((p) => (p.id === product.id ? { ...p, count } : p));
       }
       if (count > 0) {
-        // Add new product if count > 0
         return [...prev, { id: product.id, title: product.title.ar, count }];
       }
       return prev;
@@ -64,6 +74,7 @@ export default function OrderScreen() {
       console.log("you have no user id please login first");
       router.replace("/");
     }
+    setButtonLoading(false);
   };
 
   return (
@@ -75,13 +86,13 @@ export default function OrderScreen() {
       </ThemedView>
 
       <ThemedView style={styles.buttonContainer}>
-        <View>
+        <View style={{ flexDirection: "row", justifyContent: "space-between", gap: 8 }}>
           <TouchableOpacity onPress={handleSubmitOrder}>
             <View
               style={{
-                width: "100%",
-                gap: 8,
+                gap: 4,
                 padding: 12,
+                paddingHorizontal: 24,
                 borderRadius: 8,
                 backgroundColor: "#4FFFB0",
                 display: "flex",
@@ -105,11 +116,38 @@ export default function OrderScreen() {
               )}
             </View>
           </TouchableOpacity>
+          <View
+            style={{
+              padding: 8,
+              borderRadius: 8,
+              minWidth: 60,
+              alignItems: "center",
+              justifyContent: "center",
+              backgroundColor: "#4FFFB0",
+            }}
+          >
+            <Text>النقاط</Text>
+            <Text>{totalPoints}</Text>
+          </View>
+          <View
+            style={{
+              padding: 8,
+              borderRadius: 8,
+              minWidth: 60,
+              alignItems: "center",
+              justifyContent: "center",
+              backgroundColor: "#4FFFB0",
+            }}
+          >
+            <Text>السعر</Text>
+            <Text>{totalPrice}</Text>
+          </View>
         </View>
       </ThemedView>
     </ThemedView>
   );
 }
+
 
 const styles = StyleSheet.create({
   container: {
